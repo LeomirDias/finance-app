@@ -98,7 +98,7 @@ function DailyChart({
             return (
               <div
                 key={day}
-                className="group flex min-w-[6px] flex-1 flex-col items-center gap-1 sm:min-w-0"
+                className="group flex min-w-1.5 flex-1 flex-col items-center gap-1 sm:min-w-0"
                 title={
                   amount > 0
                     ? `Dia ${day}: ${formatCurrency(amount)}`

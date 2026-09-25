@@ -180,7 +180,7 @@ export function MonthTransactionList({ groups }: MonthTransactionListProps) {
 
             {/* Desktop: tabela */}
             <div className="hidden overflow-x-auto rounded-2xl border border-border/60 sm:block">
-              <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+              <table className="w-full min-w-160 border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-3 font-medium">Data</th>
@@ -207,7 +207,7 @@ export function MonthTransactionList({ groups }: MonthTransactionListProps) {
                         <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted-foreground">
                           {formatDay(tx.transactionDate)}
                         </td>
-                        <td className="max-w-[16rem] px-4 py-3">
+                        <td className="max-w-64 px-4 py-3">
                           <p
                             className={cn(
                               "truncate font-medium",

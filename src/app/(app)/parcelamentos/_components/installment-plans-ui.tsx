@@ -293,7 +293,7 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
                     Parcelas
                   </h3>
                   <div className="overflow-x-auto rounded-2xl border border-border/60">
-                    <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+                    <table className="w-full min-w-130 border-collapse text-left text-sm">
                       <thead>
                         <tr className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
                           <th className="px-4 py-3 font-medium">#</th>

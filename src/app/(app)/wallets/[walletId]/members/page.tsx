@@ -49,7 +49,7 @@ export default async function WalletMembersPage({
       />
 
       <main className="content-container">
-        <div className="grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
+        <div className="grid gap-6 lg:grid-cols-[1fr_--spacing(96)] lg:items-start">
           <section className="grid gap-3">
             {members.map((member) => (
               <WalletMemberCard
