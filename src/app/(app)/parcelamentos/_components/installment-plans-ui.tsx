@@ -62,7 +62,7 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
   if (plans.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-border/60 px-4 py-10 text-center text-sm text-muted-foreground">
-        Nenhum parcelamento ativo. Cadastre um em Lançamentos → Parcelado.
+        Nenhum parcelamento ativo. Cadastre um em Gastos → Parcelado.
       </p>
     );
   }

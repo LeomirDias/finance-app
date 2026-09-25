@@ -99,3 +99,4 @@ export async function createInstallmentPlanAction(
 
   return { success: true, data: { id: plan.id } };
 }
+

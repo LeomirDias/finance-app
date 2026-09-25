@@ -28,18 +28,6 @@ import { PanelLeftIcon } from "lucide-react"
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 
-function readSidebarCookie(): boolean | null {
-  if (typeof document === "undefined") return null
-
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`)
-  )
-
-  if (!match) return null
-
-  return match[1] === "true"
-}
-
 function writeSidebarCookie(open: boolean) {
   document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
 }
@@ -88,9 +76,8 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(
-    () => readSidebarCookie() ?? defaultOpen
-  )
+  // defaultOpen must come from the server (cookie) to avoid hydration mismatch.
+  const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {

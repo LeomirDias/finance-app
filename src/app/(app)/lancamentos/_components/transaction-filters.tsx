@@ -27,6 +27,10 @@ type TransactionFiltersProps = {
   cards: Option[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  basePath?: string;
+  mode?: "expense" | "income";
+  defaultFrom: string;
+  defaultTo: string;
 };
 
 export function TransactionFilters({
@@ -34,6 +38,10 @@ export function TransactionFilters({
   cards,
   open,
   onOpenChange,
+  basePath = "/lancamentos",
+  mode = "expense",
+  defaultFrom,
+  defaultTo,
 }: TransactionFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,14 +49,24 @@ export function TransactionFilters({
 
   const current = {
     q: searchParams.get("q") ?? "",
-    from: searchParams.get("from") ?? "",
-    to: searchParams.get("to") ?? "",
+    from: searchParams.get("from") ?? defaultFrom,
+    to: searchParams.get("to") ?? defaultTo,
     card: searchParams.get("card") ?? "",
     category: searchParams.get("category") ?? "",
     payment: searchParams.get("payment") ?? "",
   };
 
-  const hasFilters = Object.values(current).some((v) => v.length > 0);
+  const hasCustomFilters =
+    (searchParams.get("q") ?? "").length > 0 ||
+    (searchParams.get("from") ?? "").length > 0 ||
+    (searchParams.get("to") ?? "").length > 0 ||
+    (searchParams.get("card") ?? "").length > 0 ||
+    (searchParams.get("category") ?? "").length > 0 ||
+    (searchParams.get("payment") ?? "").length > 0;
+
+  const filterHint = "Por padrão mostra o mês atual";
+  const formKey =
+    searchParams.toString() || `month-${defaultFrom}-${defaultTo}`;
 
   useEffect(() => {
     if (!open) return;
@@ -80,16 +98,17 @@ export function TransactionFilters({
 
       const qs = params.toString();
       startTransition(() => {
-        router.push(qs ? `/lancamentos?${qs}` : "/lancamentos");
+        router.push(qs ? `${basePath}?${qs}` : basePath);
         onOpenChange(false);
       });
     },
-    [router, onOpenChange],
+    [router, onOpenChange, basePath],
   );
 
   function clear() {
     startTransition(() => {
-      router.push("/lancamentos");
+      router.push(basePath);
+      onOpenChange(false);
     });
   }
 
@@ -115,9 +134,7 @@ export function TransactionFilters({
         <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-5 py-4">
           <div>
             <h2 className="text-base font-semibold">Filtros</h2>
-            <p className="text-xs text-muted-foreground">
-              Refine a busca de lançamentos
-            </p>
+            <p className="text-xs text-muted-foreground">{filterHint}</p>
           </div>
           <Button
             type="button"
@@ -130,7 +147,11 @@ export function TransactionFilters({
           </Button>
         </div>
 
-        <form action={apply} className="flex min-h-0 flex-1 flex-col">
+        <form
+          key={formKey}
+          action={apply}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5">
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -238,7 +259,7 @@ export function TransactionFilters({
             >
               {isPending ? "Filtrando..." : "Aplicar filtros"}
             </Button>
-            {hasFilters && (
+            {hasCustomFilters && (
               <Button
                 type="button"
                 variant="outline"
@@ -247,7 +268,7 @@ export function TransactionFilters({
                 className="h-11 w-full rounded-xl"
               >
                 <X className="size-4" />
-                Limpar filtros
+                Voltar ao mês atual
               </Button>
             )}
           </div>

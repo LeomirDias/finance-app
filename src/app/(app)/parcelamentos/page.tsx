@@ -34,7 +34,7 @@ export default async function ParcelamentosPage() {
             )}
           </p>
           <Link
-            href="/lancamentos?novo=1"
+            href="/lancamentos?novo=installment"
             className={cn(
               buttonVariants({ variant: "default" }),
               "h-11 gap-2 rounded-xl font-semibold sm:h-12",

@@ -63,6 +63,7 @@ export async function upsertCreditCardAction(
 
     revalidatePath("/cartoes");
     revalidatePath("/lancamentos");
+    revalidatePath("/ganhos");
     revalidatePath("/");
     return { success: true, data: { id: data.id } };
   }
@@ -79,6 +80,7 @@ export async function upsertCreditCardAction(
 
   revalidatePath("/cartoes");
   revalidatePath("/lancamentos");
+  revalidatePath("/ganhos");
   revalidatePath("/");
   return { success: true, data: { id: created!.id } };
 }
@@ -102,6 +104,7 @@ export async function deleteCreditCardAction(
 
   revalidatePath("/cartoes");
   revalidatePath("/lancamentos");
+  revalidatePath("/ganhos");
   revalidatePath("/");
   return { success: true, data: { id } };
 }

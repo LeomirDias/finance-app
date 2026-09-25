@@ -18,7 +18,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const overview = await getMonthOverviewAction(yearMonth);
 
   return (
-    <main className="page-container relative pb-24 sm:pb-10">
+    <main className="page-container relative pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:pb-10">
       <MonthSelector year={overview.year} month={overview.month} />
 
       <MonthKpis
@@ -46,24 +46,32 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         plannedExpense={overview.plannedExpense}
       />
 
-      <div className="mb-4 flex items-end justify-between gap-4">
+      <div className="mb-3 flex items-end justify-between gap-3 sm:mb-4 sm:gap-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Lançamentos do mês
+          Movimentações
         </h2>
-        <Link
-          href="/lancamentos"
-          className="text-xs font-medium text-primary-light transition-opacity hover:opacity-80"
-        >
-          Ver todos
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/ganhos"
+            className="text-xs font-medium text-emerald-400 transition-opacity hover:opacity-80"
+          >
+            Ganhos
+          </Link>
+          <Link
+            href="/lancamentos"
+            className="text-xs font-medium text-primary-light transition-opacity hover:opacity-80"
+          >
+            Gastos
+          </Link>
+        </div>
       </div>
 
       <MonthTransactionList groups={overview.groups} />
 
       <Link
         href="/lancamentos?novo=1"
-        className="fixed bottom-5 right-5 z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-opacity hover:opacity-90 sm:bottom-8 sm:right-8"
-        aria-label="Novo lançamento"
+        className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-opacity hover:opacity-90 sm:right-8 sm:bottom-8"
+        aria-label="Novo gasto"
       >
         <Plus className="size-6" />
       </Link>

@@ -28,15 +28,17 @@ function KpiBlock({
         : plannedBalanceClass(planned);
 
   return (
-    <div className="min-w-0 rounded-2xl border border-border/60 px-4 py-4 sm:px-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="min-w-0 rounded-2xl border border-border/60 px-3 py-3 sm:px-5 sm:py-4">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
         {label}
       </p>
-      <p className={`mt-1 text-xl font-semibold tabular-nums sm:text-2xl ${toneClass}`}>
+      <p
+        className={`mt-1 truncate text-base font-semibold tabular-nums leading-tight sm:text-2xl ${toneClass}`}
+      >
         {formatCurrency(planned)}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Realizado{" "}
+      <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
+        Real.{" "}
         <span className="font-medium text-foreground/80">
           {formatCurrency(realized)}
         </span>
@@ -53,7 +55,7 @@ function plannedBalanceClass(value: number) {
 
 export function MonthKpis(props: MonthKpisProps) {
   return (
-    <section className="mb-8 grid gap-4 sm:grid-cols-3">
+    <section className="mb-5 grid grid-cols-3 gap-2 sm:mb-8 sm:gap-4">
       <KpiBlock
         label="Ganhos"
         planned={props.plannedIncome}

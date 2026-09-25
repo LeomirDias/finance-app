@@ -53,11 +53,18 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 flex max-h-[min(90dvh,840px)] w-[calc(100%-1.5rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-0 text-sm text-popover-foreground shadow-lg transition duration-200 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0 sm:w-[min(100%-2rem,48rem)]",
+          // Mobile: bottom sheet — full width, anchored to bottom, keyboard-friendly
+          "fixed inset-x-0 bottom-0 z-50 flex max-h-[min(92dvh,840px)] w-full flex-col gap-0 overflow-hidden rounded-t-2xl border border-border border-b-0 bg-popover p-0 text-sm text-popover-foreground shadow-lg transition duration-200 data-ending-style:translate-y-4 data-ending-style:opacity-0 data-starting-style:translate-y-4 data-starting-style:opacity-0",
+          // Desktop: centered modal
+          "sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[min(100%-2rem,48rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border-b sm:data-ending-style:translate-y-0 sm:data-ending-style:scale-95 sm:data-starting-style:translate-y-0 sm:data-starting-style:scale-95",
           className,
         )}
         {...props}
       >
+        <div
+          aria-hidden
+          className="mx-auto mt-2 mb-1 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30 sm:hidden"
+        />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -107,7 +114,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex shrink-0 flex-col gap-2 border-t border-border/60 px-4 py-4 sm:flex-row sm:justify-end sm:px-6",
+        "flex shrink-0 flex-col gap-2 border-t border-border/60 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4",
         className,
       )}
       {...props}

@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { EntryFormDialog } from "@/src/app/(app)/lancamentos/_components/entry-form";
+import {
+  EntryFormDialog,
+  type EntryFormMode,
+  type EntryKind,
+} from "@/src/app/(app)/lancamentos/_components/entry-form";
 import {
   FiltersToggleButton,
   TransactionFilters,
@@ -23,7 +27,13 @@ type LancamentosToolbarProps = {
   cards: CardOption[];
   activeCards: CardOption[];
   defaultOpenForm?: boolean;
+  defaultKind?: EntryKind;
   transactionCount: number;
+  mode?: EntryFormMode;
+  basePath?: string;
+  countLabel?: { singular: string; plural: string };
+  defaultFrom: string;
+  defaultTo: string;
 };
 
 export function LancamentosToolbar({
@@ -32,7 +42,13 @@ export function LancamentosToolbar({
   cards,
   activeCards,
   defaultOpenForm = false,
+  defaultKind,
   transactionCount,
+  mode = "expense",
+  basePath = "/lancamentos",
+  countLabel = { singular: "gasto", plural: "gastos" },
+  defaultFrom,
+  defaultTo,
 }: LancamentosToolbarProps) {
   const searchParams = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -50,7 +66,7 @@ export function LancamentosToolbar({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {transactionCount}{" "}
-          {transactionCount === 1 ? "lançamento" : "lançamentos"}
+          {transactionCount === 1 ? countLabel.singular : countLabel.plural}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <FiltersToggleButton
@@ -62,6 +78,9 @@ export function LancamentosToolbar({
             categories={categories}
             cards={activeCards}
             defaultOpen={defaultOpenForm}
+            defaultKind={defaultKind}
+            mode={mode}
+            redirectPath={basePath}
           />
         </div>
       </div>
@@ -71,6 +90,10 @@ export function LancamentosToolbar({
         cards={cards}
         open={filtersOpen}
         onOpenChange={setFiltersOpen}
+        basePath={basePath}
+        mode={mode}
+        defaultFrom={defaultFrom}
+        defaultTo={defaultTo}
       />
     </>
   );

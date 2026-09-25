@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
@@ -33,7 +33,7 @@ type CardOption = {
   name: string;
 };
 
-type EntryKind =
+export type EntryKind =
   | "income"
   | "expense"
   | "installment"
@@ -41,12 +41,17 @@ type EntryKind =
   | "subscription"
   | "fixed_income";
 
-const ENTRY_KINDS: { value: EntryKind; label: string }[] = [
-  { value: "income", label: "Ganho" },
+export type EntryFormMode = "expense" | "income";
+
+const EXPENSE_KINDS: { value: EntryKind; label: string }[] = [
   { value: "expense", label: "Gasto" },
   { value: "installment", label: "Parcelado" },
   { value: "recurring_expense", label: "Recorrente" },
   { value: "subscription", label: "Assinatura" },
+];
+
+const INCOME_KINDS: { value: EntryKind; label: string }[] = [
+  { value: "income", label: "Ganho" },
   { value: "fixed_income", label: "Renda fixa" },
 ];
 
@@ -67,6 +72,9 @@ type EntryFormDialogProps = {
   categories: CategoryOption[];
   cards: CardOption[];
   defaultOpen?: boolean;
+  defaultKind?: EntryKind;
+  mode?: EntryFormMode;
+  redirectPath?: string;
 };
 
 function todayISO() {
@@ -74,14 +82,64 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function KindGroup({
+  label,
+  kinds,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  kinds: { value: EntryKind; label: string }[];
+  selected: EntryKind;
+  onSelect: (kind: EntryKind) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div
+        className={cn(
+          "grid gap-2",
+          kinds.length <= 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4",
+        )}
+      >
+        {kinds.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onSelect(item.value)}
+            className={cn(
+              "h-11 rounded-xl border px-2 text-sm font-medium transition-colors sm:h-10 sm:px-3",
+              selected === item.value
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EntryFormDialog({
   categories,
   cards,
   defaultOpen = false,
+  defaultKind,
+  mode = "expense",
+  redirectPath,
 }: EntryFormDialogProps) {
   const router = useRouter();
-  const [kind, setKind] = useState<EntryKind>("expense");
+  const basePath = redirectPath ?? (mode === "income" ? "/ganhos" : "/lancamentos");
+  const resolvedDefaultKind: EntryKind =
+    defaultKind ?? (mode === "income" ? "income" : "expense");
+  const [kind, setKind] = useState<EntryKind>(resolvedDefaultKind);
   const [open, setOpen] = useState(defaultOpen);
+  const kindRef = useRef(kind);
+  kindRef.current = kind;
 
   const [txState, txAction, txPending] = useActionState(
     upsertTransactionAction,
@@ -109,12 +167,29 @@ export function EntryFormDialog({
   }, [defaultOpen]);
 
   useEffect(() => {
-    if (state.success) {
-      setOpen(false);
-      router.refresh();
-      router.replace("/lancamentos");
-    }
-  }, [state.success, router]);
+    setKind(resolvedDefaultKind);
+  }, [resolvedDefaultKind]);
+
+  useEffect(() => {
+    if (!state.success) return;
+
+    setOpen(false);
+    router.refresh();
+
+    const currentKind = kindRef.current;
+    const nextPath =
+      currentKind === "subscription"
+        ? "/assinaturas"
+        : currentKind === "recurring_expense"
+          ? "/recorrentes"
+          : currentKind === "installment"
+            ? "/parcelamentos"
+            : currentKind === "income" || currentKind === "fixed_income"
+              ? "/ganhos"
+              : basePath;
+
+    router.replace(nextPath);
+  }, [state.success, router, basePath]);
 
   const filteredCategories = useMemo(() => {
     const type =
@@ -129,53 +204,57 @@ export function EntryFormDialog({
         ? txAction
         : recAction;
 
+  const isIncomeMode = mode === "income";
+  const ctaLabel = isIncomeMode ? "Novo ganho" : "Novo gasto";
+  const title = isIncomeMode ? "Novo ganho" : "Novo gasto";
+  const description = isIncomeMode
+    ? "Cadastre um ganho avulso ou uma renda fixa recorrente."
+    : "Cadastre gasto, parcela, recorrente ou assinatura.";
+
   return (
     <>
       <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-11 gap-2 rounded-xl font-semibold sm:h-12"
+        className="h-11 w-full gap-2 rounded-xl font-semibold sm:h-12 sm:w-auto"
       >
         <Plus className="size-4" />
-        Novo lançamento
+        {ctaLabel}
       </Button>
 
       <Dialog
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
-          if (!next) router.replace("/lancamentos");
+          if (!next) router.replace(basePath);
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Novo lançamento</DialogTitle>
-            <DialogDescription>
-              Cadastre ganho, gasto, parcela, recorrente ou assinatura.
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              {description}
             </DialogDescription>
           </DialogHeader>
 
           <form action={action} className="flex min-h-0 flex-1 flex-col">
-            <DialogBody className="space-y-5">
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <div className="flex flex-wrap gap-2">
-                  {ENTRY_KINDS.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setKind(item.value)}
-                      className={cn(
-                        "h-10 rounded-xl border px-3 text-sm font-medium transition-colors",
-                        kind === item.value
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+            <DialogBody className="space-y-4 overscroll-contain sm:space-y-5">
+              <div className="space-y-3">
+                {isIncomeMode ? (
+                  <KindGroup
+                    label="Tipo"
+                    kinds={INCOME_KINDS}
+                    selected={kind}
+                    onSelect={setKind}
+                  />
+                ) : (
+                  <KindGroup
+                    label="Tipo"
+                    kinds={EXPENSE_KINDS}
+                    selected={kind}
+                    onSelect={setKind}
+                  />
+                )}
               </div>
 
               {(kind === "subscription" ||
@@ -188,12 +267,18 @@ export function EntryFormDialog({
                 <input type="hidden" name="type" value={kind} />
               )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div className="sm:col-span-2">
                   <Field
                     label="Descrição"
                     name="description"
-                    placeholder="Ex.: Mercado, Netflix, Salário"
+                    placeholder={
+                      isIncomeMode
+                        ? "Ex.: Salário, Freelance"
+                        : "Ex.: Mercado, Netflix"
+                    }
+                    autoComplete="off"
+                    enterKeyHint="next"
                     error={state.fieldErrors?.description?.[0]}
                   />
                 </div>
@@ -204,15 +289,17 @@ export function EntryFormDialog({
                       label="Valor total"
                       name="totalAmount"
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       placeholder="0,00"
                       error={state.fieldErrors?.totalAmount?.[0]}
                     />
                     <Field
-                      label="Número de parcelas"
+                      label="Nº de parcelas"
                       name="totalInstallments"
                       type="number"
+                      inputMode="numeric"
                       min="2"
                       max="60"
                       defaultValue="2"
@@ -232,6 +319,7 @@ export function EntryFormDialog({
                       label="Valor"
                       name="amount"
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       placeholder="0,00"
@@ -267,6 +355,7 @@ export function EntryFormDialog({
                       label="Valor mensal"
                       name="amount"
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       placeholder="0,00"
@@ -276,6 +365,7 @@ export function EntryFormDialog({
                       label="Dia do mês"
                       name="dayOfMonth"
                       type="number"
+                      inputMode="numeric"
                       min="1"
                       max="31"
                       defaultValue="1"
@@ -367,14 +457,14 @@ export function EntryFormDialog({
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                className="h-11 rounded-xl sm:w-28"
+                className="h-12 w-full rounded-xl sm:h-11 sm:w-28"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={pending}
-                className="h-11 flex-1 rounded-xl font-semibold sm:flex-none sm:min-w-36"
+                className="h-12 w-full rounded-xl font-semibold sm:h-11 sm:w-auto sm:min-w-36"
               >
                 {pending ? "Salvando..." : "Salvar"}
               </Button>

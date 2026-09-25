@@ -305,14 +305,17 @@ export async function getMonthOverview(
           (paymentMap.get(tx.paymentMethod) ?? 0) + tx.amount,
         );
 
-        const day = tx.transactionDate.getDate();
-        const dayEntry = dayMap.get(day) ?? { day, amount: 0, count: 0 };
-        dayEntry.amount += tx.amount;
-        dayEntry.count += 1;
-        dayMap.set(day, dayEntry);
+        // Gráficos por dia: apenas gastos avulsos (sem parcelas/recorrências/assinaturas)
+        if (tx.group === "one_off") {
+          const day = tx.transactionDate.getDate();
+          const dayEntry = dayMap.get(day) ?? { day, amount: 0, count: 0 };
+          dayEntry.amount += tx.amount;
+          dayEntry.count += 1;
+          dayMap.set(day, dayEntry);
 
-        const weekday = tx.transactionDate.getDay();
-        weekdayMap.set(weekday, (weekdayMap.get(weekday) ?? 0) + tx.amount);
+          const weekday = tx.transactionDate.getDay();
+          weekdayMap.set(weekday, (weekdayMap.get(weekday) ?? 0) + tx.amount);
+        }
       }
     }
   }

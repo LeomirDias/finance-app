@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowDownCircle,
+  ArrowUpCircle,
   CreditCard,
   Home,
   Layers,
   LogOut,
-  Send,
+  RefreshCw,
+  Sparkles,
   Wallet,
 } from "lucide-react";
 
@@ -30,8 +33,11 @@ import { cn } from "@/src/lib/utils";
 
 const navItems = [
   { href: "/", label: "Início", icon: Home },
-  { href: "/lancamentos", label: "Lançamentos", icon: Send },
+  { href: "/ganhos", label: "Ganhos", icon: ArrowUpCircle },
+  { href: "/lancamentos", label: "Gastos", icon: ArrowDownCircle },
   { href: "/parcelamentos", label: "Parcelamentos", icon: Layers },
+  { href: "/assinaturas", label: "Assinaturas", icon: Sparkles },
+  { href: "/recorrentes", label: "Recorrentes", icon: RefreshCw },
   { href: "/cartoes", label: "Cartões", icon: CreditCard },
   { href: "/wallets", label: "Carteiras", icon: Wallet },
 ];

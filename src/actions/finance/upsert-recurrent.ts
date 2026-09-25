@@ -15,6 +15,9 @@ import { parseDateOnly, roundMoney } from "@/src/lib/finance/dates";
 function revalidateFinance() {
   revalidatePath("/");
   revalidatePath("/lancamentos");
+  revalidatePath("/ganhos");
+  revalidatePath("/assinaturas");
+  revalidatePath("/recorrentes");
 }
 
 export async function upsertRecurrentAction(

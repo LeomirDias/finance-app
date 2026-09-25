@@ -24,16 +24,18 @@ const KIND_LABEL: Record<RecurrentItem["recurrenceKind"], string> = {
   fixed_income: "Renda fixa",
 };
 
-export function RecurrentList({ items }: { items: RecurrentItem[] }) {
+export function RecurrentList({
+  items,
+  emptyLabel = "Nenhuma assinatura ou recorrência cadastrada.",
+}: {
+  items: RecurrentItem[];
+  emptyLabel?: string;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   if (items.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Nenhuma assinatura ou recorrência cadastrada.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
   }
 
   return (

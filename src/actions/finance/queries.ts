@@ -11,9 +11,13 @@ import {
   transactions,
 } from "@/src/db/schema";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
-import { getMonthOverview } from "@/src/lib/finance/month-summary";
+import {
+  ensureRecurrentOccurrences,
+  getMonthOverview,
+} from "@/src/lib/finance/month-summary";
 import {
   formatYearMonth,
+  getMonthRange,
   parseDateOnly,
   parseYearMonth,
   toNumber,
@@ -49,16 +53,113 @@ export async function listCategories() {
   return rows;
 }
 
-export async function listRecurrents() {
+export async function listRecurrents(filters?: {
+  type?: "income" | "expense";
+  kind?: "subscription" | "recurring_expense" | "fixed_income";
+}) {
   const { walletId } = await requireActiveWallet();
 
+  const conditions: SQL[] = [eq(recurrentTransactions.walletId, walletId)];
+
+  if (filters?.type) {
+    conditions.push(eq(recurrentTransactions.type, filters.type));
+  }
+
+  if (filters?.kind) {
+    conditions.push(eq(recurrentTransactions.recurrenceKind, filters.kind));
+  }
+
   return db.query.recurrentTransactions.findMany({
-    where: eq(recurrentTransactions.walletId, walletId),
+    where: and(...conditions),
     orderBy: (table, { desc }) => [desc(table.createdAt)],
     with: {
       category: true,
       creditCard: true,
     },
+  });
+}
+
+export type RecurrentSummary = {
+  id: string;
+  description: string;
+  amount: number;
+  recurrenceKind: "subscription" | "recurring_expense" | "fixed_income";
+  dayOfMonth: number;
+  status: "active" | "inactive";
+  paymentMethod: string;
+  startDate: Date;
+  endDate: Date | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  creditCardId: string | null;
+  creditCardName: string | null;
+  notes: string | null;
+  thisMonthOccurrence: {
+    id: string;
+    status: "pending" | "paid" | "received" | "canceled";
+    amount: number;
+    transactionDate: Date;
+  } | null;
+};
+
+export async function listRecurrentSummaries(filters: {
+  kind: "subscription" | "recurring_expense" | "fixed_income";
+}): Promise<RecurrentSummary[]> {
+  const { walletId } = await requireActiveWallet();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const { start, end } = getMonthRange(year, month);
+
+  await ensureRecurrentOccurrences(walletId, year, month);
+
+  const rows = await db.query.recurrentTransactions.findMany({
+    where: and(
+      eq(recurrentTransactions.walletId, walletId),
+      eq(recurrentTransactions.recurrenceKind, filters.kind),
+    ),
+    orderBy: (table, { desc }) => [desc(table.createdAt)],
+    with: {
+      category: true,
+      creditCard: true,
+      transactions: {
+        where: and(
+          gte(transactions.transactionDate, start),
+          lte(transactions.transactionDate, end),
+          ne(transactions.status, "canceled"),
+        ),
+        orderBy: (table, { desc }) => [desc(table.transactionDate)],
+        limit: 1,
+      },
+    },
+  });
+
+  return rows.map((row) => {
+    const occurrence = row.transactions[0] ?? null;
+    return {
+      id: row.id,
+      description: row.description,
+      amount: toNumber(row.amount),
+      recurrenceKind: row.recurrenceKind,
+      dayOfMonth: row.dayOfMonth,
+      status: row.status,
+      paymentMethod: row.paymentMethod,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      categoryId: row.categoryId,
+      categoryName: row.category?.name ?? null,
+      creditCardId: row.creditCardId,
+      creditCardName: row.creditCard?.name ?? null,
+      notes: row.notes,
+      thisMonthOccurrence: occurrence
+        ? {
+            id: occurrence.id,
+            status: occurrence.status,
+            amount: toNumber(occurrence.amount),
+            transactionDate: occurrence.transactionDate,
+          }
+        : null,
+    };
   });
 }
 
@@ -69,6 +170,7 @@ export type TransactionFilters = {
   card?: string;
   category?: string;
   payment?: string;
+  type?: "income" | "expense";
 };
 
 export async function listTransactions(filters: TransactionFilters = {}) {
@@ -78,6 +180,10 @@ export async function listTransactions(filters: TransactionFilters = {}) {
     eq(transactions.walletId, walletId),
     ne(transactions.status, "canceled"),
   ];
+
+  if (filters.type) {
+    conditions.push(eq(transactions.type, filters.type));
+  }
 
   if (filters.q?.trim()) {
     conditions.push(ilike(transactions.description, `%${filters.q.trim()}%`));
@@ -133,6 +239,7 @@ export async function listTransactions(filters: TransactionFilters = {}) {
       installmentNumber: transactions.installmentNumber,
       installmentPlanId: transactions.installmentPlanId,
       recurrentTransactionId: transactions.recurrentTransactionId,
+      notes: transactions.notes,
     })
     .from(transactions)
     .leftJoin(categories, eq(transactions.categoryId, categories.id))

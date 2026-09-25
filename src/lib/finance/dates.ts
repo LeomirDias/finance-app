@@ -50,6 +50,16 @@ export function toDateOnlyString(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Intervalo do mês atual em YYYY-MM-DD (útil como filtro padrão). */
+export function getCurrentMonthDateFilters(): { from: string; to: string } {
+  const now = new Date();
+  const { start, end } = getMonthRange(now.getFullYear(), now.getMonth() + 1);
+  return {
+    from: toDateOnlyString(start),
+    to: toDateOnlyString(end),
+  };
+}
+
 export function parseDateOnly(value: string): Date {
   const [y, m, d] = value.split("-").map(Number);
   return new Date(y!, m! - 1, d!, 12, 0, 0, 0);

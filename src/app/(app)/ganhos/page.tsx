@@ -11,7 +11,7 @@ import { TransactionList } from "@/src/app/(app)/lancamentos/_components/transac
 import { getCurrentMonthDateFilters } from "@/src/lib/finance/dates";
 import type { EntryKind } from "@/src/app/(app)/lancamentos/_components/entry-form";
 
-type GastosPageProps = {
+type GanhosPageProps = {
   searchParams: Promise<{
     novo?: string;
     q?: string;
@@ -23,25 +23,20 @@ type GastosPageProps = {
   }>;
 };
 
-const OPEN_KINDS = new Set<EntryKind>([
-  "expense",
-  "installment",
-  "recurring_expense",
-  "subscription",
-]);
+const OPEN_KINDS = new Set<EntryKind>(["income", "fixed_income"]);
 
 function resolveOpenKind(novo?: string): EntryKind | undefined {
   if (!novo) return undefined;
-  if (novo === "1") return "expense";
+  if (novo === "1") return "income";
   if (OPEN_KINDS.has(novo as EntryKind)) return novo as EntryKind;
   return undefined;
 }
 
-export default async function GastosPage({ searchParams }: GastosPageProps) {
+export default async function GanhosPage({ searchParams }: GanhosPageProps) {
   const params = await searchParams;
   const monthDefaults = getCurrentMonthDateFilters();
   const filters = {
-    type: "expense" as const,
+    type: "income" as const,
     q: params.q,
     from: params.from ?? monthDefaults.from,
     to: params.to ?? monthDefaults.to,
@@ -56,8 +51,8 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
     listTransactions(filters),
   ]);
 
-  const expenseCategories = categories.filter((c) => c.type === "expense");
-  const categoryOptions = expenseCategories.map((c) => ({
+  const incomeCategories = categories.filter((c) => c.type === "income");
+  const categoryOptions = incomeCategories.map((c) => ({
     id: c.id,
     name: c.name,
     type: c.type,
@@ -73,8 +68,8 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
   return (
     <>
       <PageHeader
-        title="Gastos"
-        subtitle="Gastos do mês atual — use o filtro para outros períodos"
+        title="Ganhos"
+        subtitle="Ganhos do mês atual — use o filtro para outros períodos"
         backHref="/"
         backLabel="Início"
       />
@@ -92,9 +87,9 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
             defaultOpenForm={!!defaultKind}
             defaultKind={defaultKind}
             transactionCount={transactions.length}
-            mode="expense"
-            basePath="/lancamentos"
-            countLabel={{ singular: "gasto", plural: "gastos" }}
+            mode="income"
+            basePath="/ganhos"
+            countLabel={{ singular: "ganho", plural: "ganhos" }}
             defaultFrom={monthDefaults.from}
             defaultTo={monthDefaults.to}
           />
