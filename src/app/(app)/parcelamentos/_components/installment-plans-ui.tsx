@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { CalendarDays, CreditCard, Layers } from "lucide-react";
+import { useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, CreditCard, Layers, Trash2 } from "lucide-react";
 
+import { deleteInstallmentPlanAction } from "@/src/actions/finance/upsert-installment";
 import type { InstallmentPlanSummary } from "@/src/actions/finance/queries";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { cn } from "@/src/lib/utils";
+import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
@@ -57,7 +61,35 @@ type InstallmentPlansGridProps = {
 };
 
 export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState<InstallmentPlanSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete(plan: InstallmentPlanSummary) {
+    const count = plan.installments.length || plan.totalInstallments;
+    const confirmed = window.confirm(
+      `Excluir o parcelamento "${plan.description}"? As ${count} parcelas cadastradas também serão excluídas. Esta ação não pode ser desfeita.`,
+    );
+
+    if (!confirmed) return;
+
+    setError(null);
+    const formData = new FormData();
+    formData.set("id", plan.id);
+
+    startTransition(async () => {
+      const result = await deleteInstallmentPlanAction({}, formData);
+
+      if (result.success) {
+        setSelected(null);
+        router.refresh();
+        return;
+      }
+
+      setError(result.error ?? "Não foi possível excluir o parcelamento.");
+    });
+  }
 
   if (plans.length === 0) {
     return (
@@ -69,16 +101,21 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
 
   return (
     <>
+      {error && (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </p>
+      )}
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {plans.map((plan) => (
           <li key={plan.id}>
-            <button
-              type="button"
-              onClick={() => setSelected(plan)}
-              className="flex h-full w-full flex-col gap-4 rounded-2xl border border-border/60 p-5 text-left transition-colors hover:border-primary/40 hover:bg-muted/20"
-            >
+            <div className="flex h-full w-full flex-col gap-4 rounded-2xl border border-border/60 p-5 transition-colors hover:border-primary/40 hover:bg-muted/20">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setSelected(plan)}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <p className="truncate font-semibold">{plan.description}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {[
@@ -89,44 +126,63 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
+                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-medium",
+                      STATUS_STYLES[plan.status],
+                    )}
+                  >
+                    {STATUS_LABELS[plan.status]}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={isPending}
+                    aria-label={`Excluir parcelamento ${plan.description}`}
+                    onClick={() => handleDelete(plan)}
+                  >
+                    <Trash2 />
+                  </Button>
                 </div>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                    STATUS_STYLES[plan.status],
-                  )}
-                >
-                  {STATUS_LABELS[plan.status]}
-                </span>
               </div>
 
-              <div>
-                <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Progresso
-                  </span>
-                  <span className="text-sm font-semibold tabular-nums">
-                    {plan.progressPercent}%
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      plan.status === "completed"
-                        ? "bg-emerald-400"
-                        : "bg-primary",
-                    )}
-                    style={{ width: `${Math.min(plan.progressPercent, 100)}%` }}
-                  />
-                </div>
+              <button
+                type="button"
+                onClick={() => setSelected(plan)}
+                className="flex flex-1 flex-col gap-4 text-left"
+              >
+                <div>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      Progresso
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {plan.progressPercent}%
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        plan.status === "completed"
+                          ? "bg-emerald-400"
+                          : "bg-primary",
+                      )}
+                      style={{
+                        width: `${Math.min(plan.progressPercent, 100)}%`,
+                      }}
+                    />
+                  </div>
                   <p className="mt-1.5 text-xs text-muted-foreground">
                     {plan.paidInstallments}/{plan.totalInstallments} parcelas
                     {plan.remainingInstallments > 0
                       ? ` · ${plan.remainingInstallments} restantes`
                       : " · concluído"}
                   </p>
-              </div>
+                </div>
 
               <div className="mt-auto grid grid-cols-2 gap-3 border-t border-border/50 pt-3">
                 <div>
@@ -162,7 +218,8 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
                   </p>
                 </div>
               </div>
-            </button>
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -339,6 +396,19 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
                   </div>
                 </section>
               </DialogBody>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isPending}
+                  className="h-11 gap-2 rounded-xl"
+                  onClick={() => handleDelete(selected)}
+                >
+                  <Trash2 />
+                  {isPending ? "Excluindo..." : "Excluir parcelamento"}
+                </Button>
+              </DialogFooter>
             </>
           )}
         </DialogContent>

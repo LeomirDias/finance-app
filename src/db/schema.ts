@@ -335,7 +335,7 @@ export const transactions = pgTable(
     ),
     installmentPlanId: text("installmentPlanId").references(
       () => installmentPlans.id,
-      { onDelete: "set null" },
+      { onDelete: "cascade" },
     ),
     installmentNumber: integer("installmentNumber"),
     transactionDate: timestamp("transactionDate", { mode: "date" }).notNull(),

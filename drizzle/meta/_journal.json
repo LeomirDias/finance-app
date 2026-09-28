@@ -8,6 +8,13 @@
       "when": 1790360667523,
       "tag": "0000_simplify_finance",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790622301534,
+      "tag": "0001_cascade_delete_installment_transactions",
+      "breakpoints": true
     }
   ]
 }
