@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
+import { formatCurrency } from "@/src/lib/helpers/format";
 import { cn } from "@/src/lib/utils";
 
 type CategoryOption = {
@@ -137,9 +138,20 @@ export function EntryFormDialog({
   const resolvedDefaultKind: EntryKind =
     defaultKind ?? (mode === "income" ? "income" : "expense");
   const [kind, setKind] = useState<EntryKind>(resolvedDefaultKind);
+  const [seenDefaultKind, setSeenDefaultKind] = useState(resolvedDefaultKind);
+  if (resolvedDefaultKind !== seenDefaultKind) {
+    setSeenDefaultKind(resolvedDefaultKind);
+    setKind(resolvedDefaultKind);
+  }
   const [open, setOpen] = useState(defaultOpen);
+  const [seenDefaultOpen, setSeenDefaultOpen] = useState(defaultOpen);
+  if (defaultOpen !== seenDefaultOpen) {
+    setSeenDefaultOpen(defaultOpen);
+    if (defaultOpen) setOpen(true);
+  }
+  const [installmentAmountInput, setInstallmentAmountInput] = useState("");
+  const [installmentCountInput, setInstallmentCountInput] = useState("2");
   const kindRef = useRef(kind);
-  kindRef.current = kind;
 
   const [txState, txAction, txPending] = useActionState(
     upsertTransactionAction,
@@ -161,19 +173,20 @@ export function EntryFormDialog({
         ? txState
         : recState;
   const pending = txPending || instPending || recPending;
-
-  useEffect(() => {
-    if (defaultOpen) setOpen(true);
-  }, [defaultOpen]);
-
-  useEffect(() => {
-    setKind(resolvedDefaultKind);
-  }, [resolvedDefaultKind]);
-
-  useEffect(() => {
-    if (!state.success) return;
-
+  const successId = state.success ? (state.data?.id ?? "saved") : null;
+  const [seenSuccessId, setSeenSuccessId] = useState<string | null>(null);
+  if (successId && successId !== seenSuccessId) {
+    setSeenSuccessId(successId);
     setOpen(false);
+  }
+
+  useEffect(() => {
+    kindRef.current = kind;
+  }, [kind]);
+
+  useEffect(() => {
+    if (!successId) return;
+
     router.refresh();
 
     const currentKind = kindRef.current;
@@ -189,13 +202,21 @@ export function EntryFormDialog({
               : basePath;
 
     router.replace(nextPath);
-  }, [state.success, router, basePath]);
+  }, [successId, router, basePath]);
 
   const filteredCategories = useMemo(() => {
     const type =
       kind === "income" || kind === "fixed_income" ? "income" : "expense";
     return categories.filter((c) => c.type === type);
   }, [categories, kind]);
+
+  const installmentTotal = useMemo(() => {
+    const amount = Number(installmentAmountInput);
+    const count = Number(installmentCountInput);
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    if (!Number.isInteger(count) || count < 2 || count > 60) return null;
+    return Math.round(amount * count * 100) / 100;
+  }, [installmentAmountInput, installmentCountInput]);
 
   const action =
     kind === "installment"
@@ -226,7 +247,11 @@ export function EntryFormDialog({
         open={open}
         onOpenChange={(next) => {
           setOpen(next);
-          if (!next) router.replace(basePath);
+          if (!next) {
+            setInstallmentAmountInput("");
+            setInstallmentCountInput("2");
+            router.replace(basePath);
+          }
         }}
       >
         <DialogContent>
@@ -252,7 +277,13 @@ export function EntryFormDialog({
                     label="Tipo"
                     kinds={EXPENSE_KINDS}
                     selected={kind}
-                    onSelect={setKind}
+                    onSelect={(next) => {
+                      setKind(next);
+                      if (next !== "installment") {
+                        setInstallmentAmountInput("");
+                        setInstallmentCountInput("2");
+                      }
+                    }}
                   />
                 )}
               </div>
@@ -286,14 +317,17 @@ export function EntryFormDialog({
                 {kind === "installment" ? (
                   <>
                     <Field
-                      label="Valor total"
-                      name="totalAmount"
+                      label="Valor da parcela"
+                      name="installmentAmount"
                       type="number"
                       inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       placeholder="0,00"
-                      error={state.fieldErrors?.totalAmount?.[0]}
+                      error={state.fieldErrors?.installmentAmount?.[0]}
+                      onChange={(event) =>
+                        setInstallmentAmountInput(event.target.value)
+                      }
                     />
                     <Field
                       label="Nº de parcelas"
@@ -304,7 +338,18 @@ export function EntryFormDialog({
                       max="60"
                       defaultValue="2"
                       error={state.fieldErrors?.totalInstallments?.[0]}
+                      onChange={(event) =>
+                        setInstallmentCountInput(event.target.value)
+                      }
                     />
+                    {installmentTotal != null && (
+                      <p className="text-sm text-muted-foreground sm:col-span-2">
+                        Valor total:{" "}
+                        <span className="font-semibold text-foreground">
+                          {formatCurrency(installmentTotal)}
+                        </span>
+                      </p>
+                    )}
                     <Field
                       label="Data da 1ª parcela"
                       name="firstDueDate"

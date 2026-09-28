@@ -37,7 +37,7 @@ export const TransactionSchema = z.object({
 
 export const InstallmentPlanSchema = z.object({
   description: z.string().min(1, "Informe a descrição."),
-  totalAmount: moneySchema,
+  installmentAmount: moneySchema,
   totalInstallments: z.coerce
     .number()
     .int()

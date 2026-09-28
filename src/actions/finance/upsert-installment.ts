@@ -23,7 +23,7 @@ export async function createInstallmentPlanAction(
 
   const parsed = InstallmentPlanSchema.safeParse({
     description: formData.get("description"),
-    totalAmount: formData.get("totalAmount"),
+    installmentAmount: formData.get("installmentAmount"),
     totalInstallments: formData.get("totalInstallments"),
     firstDueDate: formData.get("firstDueDate"),
     paymentMethod: formData.get("paymentMethod"),
@@ -37,18 +37,12 @@ export async function createInstallmentPlanAction(
   }
 
   const data = parsed.data;
-  const totalAmount = roundMoney(data.totalAmount);
-  const installmentAmount = roundMoney(
-    totalAmount / data.totalInstallments,
+  const installmentAmount = roundMoney(data.installmentAmount);
+  const totalAmount = roundMoney(installmentAmount * data.totalInstallments);
+  const amounts = Array.from(
+    { length: data.totalInstallments },
+    () => installmentAmount,
   );
-  // Ajuste de centavos na última parcela
-  const amounts = Array.from({ length: data.totalInstallments }, (_, i) => {
-    if (i === data.totalInstallments - 1) {
-      const sumPrev = roundMoney(installmentAmount * (data.totalInstallments - 1));
-      return roundMoney(totalAmount - sumPrev);
-    }
-    return installmentAmount;
-  });
 
   const firstDue = parseDateOnly(data.firstDueDate);
 
