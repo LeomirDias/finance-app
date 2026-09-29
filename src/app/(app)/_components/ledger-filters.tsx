@@ -38,7 +38,7 @@ export function TransactionFilters({
   cards,
   open,
   onOpenChange,
-  basePath = "/lancamentos",
+  basePath = "/gastos",
   mode = "expense",
   defaultFrom,
   defaultTo,

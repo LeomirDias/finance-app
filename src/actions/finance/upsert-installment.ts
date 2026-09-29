@@ -1,10 +1,9 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 
 import { db } from "@/src/db";
-import { installmentPlans, transactions } from "@/src/db/schema";
+import { installmentPlans, installments } from "@/src/db/schema";
 import {
   DeleteByIdSchema,
   InstallmentPlanSchema,
@@ -16,6 +15,7 @@ import {
   parseDateOnly,
   roundMoney,
 } from "@/src/lib/finance/dates";
+import { revalidateFinance } from "@/src/lib/finance/revalidate";
 
 export async function createInstallmentPlanAction(
   _prevState: FinanceActionState,
@@ -71,19 +71,18 @@ export async function createInstallmentPlanAction(
     return { error: "Não foi possível criar o parcelamento." };
   }
 
-  await db.insert(transactions).values(
+  await db.insert(installments).values(
     amounts.map((amount, index) => ({
       walletId,
+      installmentPlanId: plan.id,
       description: `${data.description} (${index + 1}/${data.totalInstallments})`,
       amount: amount.toFixed(2),
-      type: "expense" as const,
       status: "pending" as const,
       paymentMethod: data.paymentMethod,
       categoryId: data.categoryId ?? null,
       creditCardId: data.creditCardId ?? null,
-      installmentPlanId: plan.id,
       installmentNumber: index + 1,
-      transactionDate: addMonths(firstDue, index),
+      dueDate: addMonths(firstDue, index),
       createdByUserId: userId,
       notes: data.notes ?? null,
     })),
@@ -92,13 +91,6 @@ export async function createInstallmentPlanAction(
   revalidateFinance();
 
   return { success: true, data: { id: plan.id } };
-}
-
-function revalidateFinance() {
-  revalidatePath("/");
-  revalidatePath("/lancamentos");
-  revalidatePath("/parcelamentos");
-  revalidatePath("/ganhos");
 }
 
 export async function deleteInstallmentPlanAction(
@@ -128,25 +120,12 @@ export async function deleteInstallmentPlanAction(
     return { error: "Parcelamento não encontrado." };
   }
 
-  const [, deleted] = await db.batch([
-    db
-      .delete(transactions)
-      .where(
-        and(
-          eq(transactions.installmentPlanId, id),
-          eq(transactions.walletId, walletId),
-        ),
-      ),
-    db
-      .delete(installmentPlans)
-      .where(
-        and(
-          eq(installmentPlans.id, id),
-          eq(installmentPlans.walletId, walletId),
-        ),
-      )
-      .returning({ id: installmentPlans.id }),
-  ]);
+  const deleted = await db
+    .delete(installmentPlans)
+    .where(
+      and(eq(installmentPlans.id, id), eq(installmentPlans.walletId, walletId)),
+    )
+    .returning({ id: installmentPlans.id });
 
   if (!deleted[0]) {
     return { error: "Não foi possível excluir o parcelamento." };

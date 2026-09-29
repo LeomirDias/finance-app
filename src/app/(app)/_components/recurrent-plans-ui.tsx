@@ -9,13 +9,9 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, CreditCard, Pencil, Repeat } from "lucide-react";
+import { CalendarDays, CreditCard, Pencil, Plus, Repeat } from "lucide-react";
 
-import type { RecurrentSummary } from "@/src/actions/finance/queries";
-import {
-  deactivateRecurrentAction,
-  upsertRecurrentAction,
-} from "@/src/actions/finance/upsert-recurrent";
+import type { PlanSummary } from "@/src/actions/finance/queries";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { toDateOnlyString } from "@/src/lib/finance/dates";
@@ -49,6 +45,13 @@ const PAYMENT_METHODS = [
   { value: "cash", label: "Dinheiro" },
 ] as const;
 
+type PlanAction = (
+  prev: FinanceActionState,
+  formData: FormData,
+) => Promise<FinanceActionState>;
+
+type RecurrentSummary = PlanSummary;
+
 const STATUS_LABELS: Record<RecurrentSummary["status"], string> = {
   active: "Ativa",
   inactive: "Inativa",
@@ -74,11 +77,15 @@ type CardOption = { id: string; name: string };
 
 type RecurrentPlansGridProps = {
   items: RecurrentSummary[];
-  kind: "subscription" | "recurring_expense";
   categories: CategoryOption[];
   cards: CardOption[];
   emptyLabel: string;
   singularLabel: string;
+  categoryType: "income" | "expense";
+  upsertAction: PlanAction;
+  deactivateAction: PlanAction;
+  showCard?: boolean;
+  amountClassName?: string;
 };
 
 function formatDate(date: Date) {
@@ -100,11 +107,15 @@ function occurrenceStatusLabel(
 
 export function RecurrentPlansGrid({
   items,
-  kind,
   categories,
   cards,
   emptyLabel,
   singularLabel,
+  categoryType,
+  upsertAction,
+  deactivateAction,
+  showCard = true,
+  amountClassName = "text-rose-400",
 }: RecurrentPlansGridProps) {
   const router = useRouter();
   const [selected, setSelected] = useState<RecurrentSummary | null>(null);
@@ -163,7 +174,12 @@ export function RecurrentPlansGrid({
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     Valor mensal
                   </p>
-                  <p className="mt-0.5 text-xl font-semibold tabular-nums text-rose-400">
+                  <p
+                    className={cn(
+                      "mt-0.5 text-xl font-semibold tabular-nums",
+                      amountClassName,
+                    )}
+                  >
                     {formatCurrency(item.amount)}
                   </p>
                 </div>
@@ -215,10 +231,12 @@ export function RecurrentPlansGrid({
             (editing ? (
               <EditRecurrentForm
                 item={selected}
-                kind={kind}
                 categories={categories}
                 cards={cards}
                 singularLabel={singularLabel}
+                categoryType={categoryType}
+                upsertAction={upsertAction}
+                showCard={showCard}
                 onCancel={() => setEditing(false)}
                 onSuccess={() => {
                   setSelected(null);
@@ -230,6 +248,7 @@ export function RecurrentPlansGrid({
               <RecurrentDetail
                 item={selected}
                 singularLabel={singularLabel}
+                deactivateAction={deactivateAction}
                 onEdit={() => setEditing(true)}
                 onDeactivated={() => {
                   setSelected(null);
@@ -246,11 +265,13 @@ export function RecurrentPlansGrid({
 function RecurrentDetail({
   item,
   singularLabel,
+  deactivateAction,
   onEdit,
   onDeactivated,
 }: {
   item: RecurrentSummary;
   singularLabel: string;
+  deactivateAction: PlanAction;
   onEdit: () => void;
   onDeactivated: () => void;
 }) {
@@ -349,7 +370,7 @@ function RecurrentDetail({
                 const fd = new FormData();
                 fd.set("id", item.id);
                 startTransition(async () => {
-                  await deactivateRecurrentAction({}, fd);
+                  await deactivateAction({}, fd);
                   onDeactivated();
                 });
               }}
@@ -365,33 +386,34 @@ function RecurrentDetail({
 
 function EditRecurrentForm({
   item,
-  kind,
   categories,
   cards,
   singularLabel,
+  categoryType,
+  upsertAction,
+  showCard,
   onCancel,
   onSuccess,
 }: {
   item: RecurrentSummary;
-  kind: "subscription" | "recurring_expense";
   categories: CategoryOption[];
   cards: CardOption[];
   singularLabel: string;
+  categoryType: "income" | "expense";
+  upsertAction: PlanAction;
+  showCard: boolean;
   onCancel: () => void;
   onSuccess: () => void;
 }) {
-  const [state, action, pending] = useActionState(
-    upsertRecurrentAction,
-    initialState,
-  );
+  const [state, action, pending] = useActionState(upsertAction, initialState);
 
   useEffect(() => {
     if (state.success) onSuccess();
   }, [state.success, onSuccess]);
 
   const filteredCategories = useMemo(
-    () => categories.filter((c) => c.type === "expense"),
-    [categories],
+    () => categories.filter((c) => c.type === categoryType),
+    [categories, categoryType],
   );
 
   return (
@@ -410,7 +432,6 @@ function EditRecurrentForm({
       >
         <DialogBody className="space-y-5">
           <input type="hidden" name="id" value={item.id} />
-          <input type="hidden" name="recurrenceKind" value={kind} />
           <input type="hidden" name="status" value={item.status} />
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -488,22 +509,24 @@ function EditRecurrentForm({
               </select>
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="rec-creditCardId">Cartão (opcional)</Label>
-              <select
-                id="rec-creditCardId"
-                name="creditCardId"
-                className={selectClass}
-                defaultValue={item.creditCardId ?? ""}
-              >
-                <option value="">Nenhum</option>
-                {cards.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {showCard && (
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="rec-creditCardId">Cartão (opcional)</Label>
+                <select
+                  id="rec-creditCardId"
+                  name="creditCardId"
+                  className={selectClass}
+                  defaultValue={item.creditCardId ?? ""}
+                >
+                  <option value="">Nenhum</option>
+                  {cards.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {state.error && (
@@ -579,6 +602,186 @@ function InfoTile({
         <p className="mt-0.5 text-sm font-medium">{value}</p>
       </div>
     </div>
+  );
+}
+
+export function CreatePlanButton({
+  label,
+  title,
+  description,
+  categories,
+  cards,
+  categoryType,
+  upsertAction,
+  showCard = true,
+  defaultPayment = "credit_card",
+}: {
+  label: string;
+  title: string;
+  description: string;
+  categories: CategoryOption[];
+  cards: CardOption[];
+  categoryType: "income" | "expense";
+  upsertAction: PlanAction;
+  showCard?: boolean;
+  defaultPayment?: string;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [state, action, pending] = useActionState(upsertAction, initialState);
+  const filteredCategories = useMemo(
+    () => categories.filter((category) => category.type === categoryType),
+    [categories, categoryType],
+  );
+  const successId = state.success ? (state.data?.id ?? null) : null;
+  const [seenSuccessId, setSeenSuccessId] = useState<string | null>(null);
+  if (successId && successId !== seenSuccessId) {
+    setSeenSuccessId(successId);
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!successId) return;
+    router.refresh();
+  }, [successId, router]);
+
+  const today = new Date();
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  return (
+    <>
+      <Button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="h-11 gap-2 rounded-xl font-semibold sm:h-12"
+      >
+        <Plus className="size-4" />
+        {label}
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          <form action={action} className="flex min-h-0 flex-1 flex-col">
+            <DialogBody className="space-y-5">
+              <input type="hidden" name="status" value="active" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Descrição"
+                    name="description"
+                    error={state.fieldErrors?.description?.[0]}
+                  />
+                </div>
+                <Field
+                  label="Valor mensal"
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  error={state.fieldErrors?.amount?.[0]}
+                />
+                <Field
+                  label="Dia do mês"
+                  name="dayOfMonth"
+                  type="number"
+                  min="1"
+                  max="31"
+                  defaultValue="1"
+                  error={state.fieldErrors?.dayOfMonth?.[0]}
+                />
+                <Field
+                  label="Início"
+                  name="startDate"
+                  type="date"
+                  defaultValue={todayISO}
+                  error={state.fieldErrors?.startDate?.[0]}
+                />
+                <Field
+                  label="Fim (opcional)"
+                  name="endDate"
+                  type="date"
+                  error={state.fieldErrors?.endDate?.[0]}
+                />
+                <div className="space-y-2">
+                  <Label htmlFor="new-paymentMethod">Pagamento</Label>
+                  <select
+                    id="new-paymentMethod"
+                    name="paymentMethod"
+                    defaultValue={defaultPayment}
+                    className={selectClass}
+                  >
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method.value} value={method.value}>
+                        {method.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-categoryId">Categoria</Label>
+                  <select
+                    id="new-categoryId"
+                    name="categoryId"
+                    className={selectClass}
+                    defaultValue=""
+                  >
+                    <option value="">Sem categoria</option>
+                    {filteredCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {showCard && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="new-creditCardId">Cartão (opcional)</Label>
+                    <select
+                      id="new-creditCardId"
+                      name="creditCardId"
+                      className={selectClass}
+                      defaultValue=""
+                    >
+                      <option value="">Nenhum</option>
+                      {cards.map((card) => (
+                        <option key={card.id} value={card.id}>
+                          {card.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              {state.error && (
+                <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {state.error}
+                </div>
+              )}
+            </DialogBody>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                className="h-11 rounded-xl sm:w-28"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={pending}
+                className="h-11 flex-1 rounded-xl font-semibold sm:flex-none sm:min-w-36"
+              >
+                {pending ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

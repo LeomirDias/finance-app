@@ -58,7 +58,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             Ganhos
           </Link>
           <Link
-            href="/lancamentos"
+            href="/gastos"
             className="text-xs font-medium text-primary-light transition-opacity hover:opacity-80"
           >
             Gastos
@@ -69,7 +69,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <MonthTransactionList groups={overview.groups} />
 
       <Link
-        href="/lancamentos?novo=1"
+        href="/gastos?novo=1"
         className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-opacity hover:opacity-90 sm:right-8 sm:bottom-8"
         aria-label="Novo gasto"
       >

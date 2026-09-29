@@ -3,13 +3,21 @@ import { Suspense } from "react";
 import { PageHeader } from "@/src/components/global/page-header";
 import {
   listCategories,
-  listTransactions,
+  listIncomes,
+  listPlanSummaries,
 } from "@/src/actions/finance/queries";
-import { listCreditCards } from "@/src/actions/finance/credit-cards";
-import { LancamentosToolbar } from "@/src/app/(app)/lancamentos/_components/lancamentos-toolbar";
-import { TransactionList } from "@/src/app/(app)/lancamentos/_components/transaction-list";
+import { LedgerToolbar } from "@/src/app/(app)/_components/ledger-toolbar";
+import { LedgerList } from "@/src/app/(app)/_components/ledger-list";
+import {
+  CreatePlanButton,
+  RecurrentPlansGrid,
+} from "@/src/app/(app)/_components/recurrent-plans-ui";
+import { IncomeFormDialog } from "@/src/app/(app)/ganhos/_components/income-form";
+import {
+  deactivateFixedIncomeAction,
+  upsertFixedIncomeAction,
+} from "@/src/actions/finance/plans";
 import { getCurrentMonthDateFilters } from "@/src/lib/finance/dates";
-import type { EntryKind } from "@/src/app/(app)/lancamentos/_components/entry-form";
 
 type GanhosPageProps = {
   searchParams: Promise<{
@@ -17,108 +25,120 @@ type GanhosPageProps = {
     q?: string;
     from?: string;
     to?: string;
-    card?: string;
     category?: string;
     payment?: string;
   }>;
 };
 
-const OPEN_KINDS = new Set<EntryKind>(["income", "fixed_income"]);
-
-function resolveOpenKind(novo?: string): EntryKind | undefined {
-  if (!novo) return undefined;
-  if (novo === "1") return "income";
-  if (OPEN_KINDS.has(novo as EntryKind)) return novo as EntryKind;
-  return undefined;
-}
-
 export default async function GanhosPage({ searchParams }: GanhosPageProps) {
   const params = await searchParams;
   const monthDefaults = getCurrentMonthDateFilters();
   const filters = {
-    type: "income" as const,
     q: params.q,
     from: params.from ?? monthDefaults.from,
     to: params.to ?? monthDefaults.to,
-    card: params.card,
     category: params.category,
     payment: params.payment,
   };
 
-  const [categories, cards, transactions] = await Promise.all([
+  const [categories, rows, fixedIncomes] = await Promise.all([
     listCategories(),
-    listCreditCards(),
-    listTransactions(filters),
+    listIncomes(filters),
+    listPlanSummaries("fixed_income"),
   ]);
 
-  const incomeCategories = categories.filter((c) => c.type === "income");
-  const categoryOptions = incomeCategories.map((c) => ({
-    id: c.id,
-    name: c.name,
-    type: c.type,
-  }));
+  const incomeCategories = categories
+    .filter((category) => category.type === "income")
+    .map((category) => ({
+      id: category.id,
+      name: category.name,
+      type: category.type,
+    }));
 
-  const cardOptions = cards.map((c) => ({ id: c.id, name: c.name }));
-  const activeCards = cards
-    .filter((c) => c.status === "active")
-    .map((c) => ({ id: c.id, name: c.name }));
-
-  const defaultKind = resolveOpenKind(params.novo);
+  const defaultKind =
+    params.novo === "fixed_income" ? "fixed_income" : "income";
 
   return (
     <>
       <PageHeader
         title="Ganhos"
-        subtitle="Ganhos do mês atual — use o filtro para outros períodos"
+        subtitle="Ganhos avulsos e rendas fixas do mês"
         backHref="/"
         backLabel="Início"
       />
 
       <main className="page-container space-y-8 pb-20 sm:pb-10">
         <Suspense fallback={null}>
-          <LancamentosToolbar
-            categories={categoryOptions}
-            filterCategories={categoryOptions.map(({ id, name }) => ({
-              id,
-              name,
-            }))}
-            cards={cardOptions}
-            activeCards={activeCards}
-            defaultOpenForm={!!defaultKind}
-            defaultKind={defaultKind}
-            transactionCount={transactions.length}
-            mode="income"
-            basePath="/ganhos"
+          <LedgerToolbar
+            filterCategories={incomeCategories}
+            cards={[]}
+            count={rows.length}
             countLabel={{ singular: "ganho", plural: "ganhos" }}
+            basePath="/ganhos"
+            mode="income"
             defaultFrom={monthDefaults.from}
             defaultTo={monthDefaults.to}
+            action={
+              <IncomeFormDialog
+                categories={incomeCategories}
+                defaultOpen={params.novo === "1" || params.novo === "fixed_income"}
+                defaultKind={defaultKind}
+              />
+            }
           />
         </Suspense>
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Resultados
+            Lançamentos
           </h2>
-          <TransactionList
-            categories={categoryOptions}
-            cards={activeCards}
-            items={transactions.map((tx) => ({
-              id: tx.id,
-              description: tx.description,
-              amount: tx.amount,
-              type: tx.type,
-              status: tx.status,
-              paymentMethod: tx.paymentMethod,
-              transactionDate: tx.transactionDate,
-              categoryId: tx.categoryId,
-              categoryName: tx.categoryName,
-              creditCardId: tx.creditCardId,
-              creditCardName: tx.creditCardName,
-              installmentNumber: tx.installmentNumber,
-              installmentPlanId: tx.installmentPlanId,
-              recurrentTransactionId: tx.recurrentTransactionId,
-              notes: tx.notes,
+          <LedgerList
+            kind="income"
+            source="income"
+            categories={incomeCategories}
+            items={rows.map((row) => ({
+              id: row.id,
+              description: row.description,
+              amount: row.amount,
+              status: row.status,
+              paymentMethod: row.paymentMethod,
+              transactionDate: row.transactionDate,
+              categoryId: row.categoryId,
+              categoryName: row.categoryName,
+              notes: row.notes,
+              fixedIncomeId: row.fixedIncomeId,
             }))}
+          />
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Rendas fixas
+            </h2>
+            <CreatePlanButton
+              label="Nova renda fixa"
+              title="Nova renda fixa"
+              description="Valor que se repete todo mês e entra em Ganhos."
+              categories={incomeCategories}
+              cards={[]}
+              categoryType="income"
+              upsertAction={upsertFixedIncomeAction}
+              showCard={false}
+              defaultPayment="pix"
+            />
+          </div>
+          <RecurrentPlansGrid
+            items={fixedIncomes}
+            categories={incomeCategories}
+            cards={[]}
+            emptyLabel="Nenhuma renda fixa cadastrada."
+            singularLabel="renda fixa"
+            categoryType="income"
+            upsertAction={upsertFixedIncomeAction}
+            deactivateAction={deactivateFixedIncomeAction}
+            showCard={false}
+            amountClassName="text-emerald-400"
           />
         </section>
       </main>

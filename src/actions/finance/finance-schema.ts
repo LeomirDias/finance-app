@@ -16,19 +16,31 @@ const optionalId = z
   .optional()
   .transform((v) => (v && v.length > 0 ? v : undefined));
 
-export const TransactionSchema = z.object({
+const paymentMethodSchema = z.enum([
+  "credit_card",
+  "debit_card",
+  "pix",
+  "bank_transfer",
+  "cash",
+]);
+
+export const IncomeSchema = z.object({
   id: optionalId,
   description: z.string().min(1, "Informe a descrição."),
   amount: moneySchema,
-  type: z.enum(["income", "expense"]),
-  status: z.enum(["pending", "paid", "received", "canceled"]),
-  paymentMethod: z.enum([
-    "credit_card",
-    "debit_card",
-    "pix",
-    "bank_transfer",
-    "cash",
-  ]),
+  status: z.enum(["pending", "received", "canceled"]),
+  paymentMethod: paymentMethodSchema,
+  categoryId: optionalId,
+  transactionDate: z.string().min(1, "Informe a data."),
+  notes: z.string().optional(),
+});
+
+export const ExpenseSchema = z.object({
+  id: optionalId,
+  description: z.string().min(1, "Informe a descrição."),
+  amount: moneySchema,
+  status: z.enum(["pending", "paid", "canceled"]),
+  paymentMethod: paymentMethodSchema,
   categoryId: optionalId,
   creditCardId: optionalId,
   transactionDate: z.string().min(1, "Informe a data."),
@@ -44,27 +56,16 @@ export const InstallmentPlanSchema = z.object({
     .min(2, "Mínimo de 2 parcelas.")
     .max(60, "Máximo de 60 parcelas."),
   firstDueDate: z.string().min(1, "Informe a data da 1ª parcela."),
-  paymentMethod: z.enum([
-    "credit_card",
-    "debit_card",
-    "pix",
-    "bank_transfer",
-    "cash",
-  ]),
+  paymentMethod: paymentMethodSchema,
   categoryId: optionalId,
   creditCardId: optionalId,
   notes: z.string().optional(),
 });
 
-export const RecurrentSchema = z.object({
+export const PlanSchema = z.object({
   id: optionalId,
   description: z.string().min(1, "Informe a descrição."),
   amount: moneySchema,
-  recurrenceKind: z.enum([
-    "subscription",
-    "recurring_expense",
-    "fixed_income",
-  ]),
   dayOfMonth: z.coerce
     .number()
     .int()
@@ -75,13 +76,7 @@ export const RecurrentSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : undefined)),
-  paymentMethod: z.enum([
-    "credit_card",
-    "debit_card",
-    "pix",
-    "bank_transfer",
-    "cash",
-  ]),
+  paymentMethod: paymentMethodSchema,
   categoryId: optionalId,
   creditCardId: optionalId,
   status: z.enum(["active", "inactive"]).default("active"),
@@ -98,8 +93,15 @@ export const CreditCardSchema = z.object({
   status: z.enum(["active", "inactive", "blocked"]).default("active"),
 });
 
-export const ToggleTransactionStatusSchema = z.object({
+export const ToggleEntryStatusSchema = z.object({
   id: z.string().min(1),
+  source: z.enum([
+    "income",
+    "expense",
+    "subscription",
+    "recurring",
+    "installment",
+  ]),
   status: z.enum(["pending", "paid", "received", "canceled"]),
 });
 

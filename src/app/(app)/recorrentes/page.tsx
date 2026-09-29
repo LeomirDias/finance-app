@@ -1,36 +1,42 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
-
 import {
   listCategories,
-  listRecurrentSummaries,
+  listPlanSummaries,
 } from "@/src/actions/finance/queries";
 import { listCreditCards } from "@/src/actions/finance/credit-cards";
 import { PageHeader } from "@/src/components/global/page-header";
-import { buttonVariants } from "@/src/components/ui/button";
-import { RecurrentPlansGrid } from "@/src/app/(app)/_components/recurrent-plans-ui";
-import { cn } from "@/src/lib/utils";
+import {
+  CreatePlanButton,
+  RecurrentPlansGrid,
+} from "@/src/app/(app)/_components/recurrent-plans-ui";
+import {
+  deactivateRecurringExpenseAction,
+  upsertRecurringExpenseAction,
+} from "@/src/actions/finance/plans";
 
 export default async function RecorrentesPage() {
   const [items, categories, cards] = await Promise.all([
-    listRecurrentSummaries({ kind: "recurring_expense" }),
+    listPlanSummaries("recurring_expense"),
     listCategories(),
     listCreditCards(),
   ]);
 
-  const activeCount = items.filter((i) => i.status === "active").length;
+  const activeCount = items.filter((item) => item.status === "active").length;
   const categoryOptions = categories
-    .filter((c) => c.type === "expense")
-    .map((c) => ({ id: c.id, name: c.name, type: c.type }));
+    .filter((category) => category.type === "expense")
+    .map((category) => ({
+      id: category.id,
+      name: category.name,
+      type: category.type,
+    }));
   const activeCards = cards
-    .filter((c) => c.status === "active")
-    .map((c) => ({ id: c.id, name: c.name }));
+    .filter((card) => card.status === "active")
+    .map((card) => ({ id: card.id, name: card.name }));
 
   return (
     <>
       <PageHeader
         title="Recorrentes"
-        subtitle="Acompanhe pagamentos fixos que se repetem todo mês"
+        subtitle="Pagamentos fixos mensais, separados de assinaturas e gastos avulsos"
         backHref="/"
         backLabel="Início"
       />
@@ -38,8 +44,7 @@ export default async function RecorrentesPage() {
       <main className="page-container space-y-8 pb-20 sm:pb-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            {items.length}{" "}
-            {items.length === 1 ? "recorrente" : "recorrentes"}
+            {items.length} {items.length === 1 ? "recorrente" : "recorrentes"}
             {activeCount > 0 && (
               <span>
                 {" "}
@@ -47,25 +52,26 @@ export default async function RecorrentesPage() {
               </span>
             )}
           </p>
-          <Link
-            href="/lancamentos?novo=recurring_expense"
-            className={cn(
-              buttonVariants({ variant: "default" }),
-              "h-11 gap-2 rounded-xl font-semibold sm:h-12",
-            )}
-          >
-            <Plus className="size-4" />
-            Novo recorrente
-          </Link>
+          <CreatePlanButton
+            label="Novo recorrente"
+            title="Novo recorrente"
+            description="Conta fixa que se repete todo mês, como aluguel ou condomínio."
+            categories={categoryOptions}
+            cards={activeCards}
+            categoryType="expense"
+            upsertAction={upsertRecurringExpenseAction}
+          />
         </div>
 
         <RecurrentPlansGrid
           items={items}
-          kind="recurring_expense"
           categories={categoryOptions}
           cards={activeCards}
-          emptyLabel="Nenhum pagamento recorrente cadastrado. Crie um em Novo recorrente."
+          emptyLabel="Nenhum pagamento recorrente cadastrado."
           singularLabel="recorrência"
+          categoryType="expense"
+          upsertAction={upsertRecurringExpenseAction}
+          deactivateAction={deactivateRecurringExpenseAction}
         />
       </main>
     </>

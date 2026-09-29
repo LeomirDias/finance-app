@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Check, RotateCcw } from "lucide-react";
 
-import { toggleTransactionStatusAction } from "@/src/actions/finance/upsert-transaction";
+import { toggleLedgerStatusAction } from "@/src/actions/finance/toggle-status";
 import type { MonthTransaction } from "@/src/lib/finance/month-summary";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { Button } from "@/src/components/ui/button";
@@ -76,10 +76,11 @@ export function MonthTransactionList({ groups }: MonthTransactionListProps) {
 
     const formData = new FormData();
     formData.set("id", tx.id);
+    formData.set("source", tx.source);
     formData.set("status", nextStatus);
 
     startTransition(async () => {
-      await toggleTransactionStatusAction({}, formData);
+      await toggleLedgerStatusAction({}, formData);
       router.refresh();
     });
   }
@@ -116,7 +117,7 @@ export function MonthTransactionList({ groups }: MonthTransactionListProps) {
 
                 return (
                   <li
-                    key={tx.id}
+                    key={`${tx.source}-${tx.id}`}
                     className="flex items-center gap-3 rounded-2xl border border-border/60 px-3 py-3"
                   >
                     <div className="min-w-0 flex-1">
@@ -201,7 +202,7 @@ export function MonthTransactionList({ groups }: MonthTransactionListProps) {
 
                     return (
                       <tr
-                        key={tx.id}
+                        key={`${tx.source}-${tx.id}`}
                         className="transition-colors hover:bg-muted/20"
                       >
                         <td className="whitespace-nowrap px-4 py-3 tabular-nums text-muted-foreground">

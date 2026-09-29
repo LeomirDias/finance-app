@@ -15,6 +15,13 @@
       "when": 1790622301534,
       "tag": "0001_cascade_delete_installment_transactions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759151400000,
+      "tag": "0002_split_finance_domains",
+      "breakpoints": true
     }
   ]
 }

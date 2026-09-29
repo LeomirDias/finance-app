@@ -1,7 +1,6 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 
 import { db } from "@/src/db";
 import { creditCards } from "@/src/db/schema";
@@ -10,6 +9,7 @@ import {
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
+import { revalidateFinance } from "@/src/lib/finance/revalidate";
 
 export async function listCreditCards() {
   const { walletId } = await requireActiveWallet();
@@ -61,10 +61,7 @@ export async function upsertCreditCardAction(
       })
       .where(eq(creditCards.id, data.id));
 
-    revalidatePath("/cartoes");
-    revalidatePath("/lancamentos");
-    revalidatePath("/ganhos");
-    revalidatePath("/");
+    revalidateFinance();
     return { success: true, data: { id: data.id } };
   }
 
@@ -78,10 +75,7 @@ export async function upsertCreditCardAction(
     })
     .returning({ id: creditCards.id });
 
-  revalidatePath("/cartoes");
-  revalidatePath("/lancamentos");
-  revalidatePath("/ganhos");
-  revalidatePath("/");
+  revalidateFinance();
   return { success: true, data: { id: created!.id } };
 }
 
@@ -102,9 +96,6 @@ export async function deleteCreditCardAction(
 
   await db.delete(creditCards).where(eq(creditCards.id, id));
 
-  revalidatePath("/cartoes");
-  revalidatePath("/lancamentos");
-  revalidatePath("/ganhos");
-  revalidatePath("/");
+  revalidateFinance();
   return { success: true, data: { id } };
 }

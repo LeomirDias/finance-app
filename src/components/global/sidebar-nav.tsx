@@ -34,7 +34,7 @@ import { cn } from "@/src/lib/utils";
 const navItems = [
   { href: "/", label: "Início", icon: Home },
   { href: "/ganhos", label: "Ganhos", icon: ArrowUpCircle },
-  { href: "/lancamentos", label: "Gastos", icon: ArrowDownCircle },
+  { href: "/gastos", label: "Gastos", icon: ArrowDownCircle },
   { href: "/parcelamentos", label: "Parcelamentos", icon: Layers },
   { href: "/assinaturas", label: "Assinaturas", icon: Sparkles },
   { href: "/recorrentes", label: "Recorrentes", icon: RefreshCw },

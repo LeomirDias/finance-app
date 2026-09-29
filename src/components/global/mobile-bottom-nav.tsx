@@ -16,7 +16,7 @@ import { cn } from "@/src/lib/utils";
 const items = [
   { href: "/", label: "Início", icon: Home },
   { href: "/ganhos", label: "Ganhos", icon: ArrowUpCircle },
-  { href: "/lancamentos", label: "Gastos", icon: ArrowDownCircle },
+  { href: "/gastos", label: "Gastos", icon: ArrowDownCircle },
   { href: "/parcelamentos", label: "Parcelas", icon: Layers },
   { href: "/cartoes", label: "Cartões", icon: CreditCard },
   { href: "/wallets", label: "Carteiras", icon: Wallet },

@@ -1,19 +1,34 @@
 "use server";
 
-import { and, desc, eq, gte, ilike, lte, ne, SQL } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  lte,
+  ne,
+  type AnyColumn,
+  type SQL,
+} from "drizzle-orm";
 
 import { db } from "@/src/db";
 import {
   categories,
   creditCards,
+  expenses,
+  fixedIncomes,
+  incomes,
   installmentPlans,
-  recurrentTransactions,
-  transactions,
+  recurringExpenseCharges,
+  recurringExpenses,
+  subscriptionCharges,
+  subscriptions,
 } from "@/src/db/schema";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import { requireSession } from "@/src/lib/require-session";
 import {
-  ensureRecurrentOccurrences,
+  ensureDomainOccurrences,
   getMonthOverview,
 } from "@/src/lib/finance/month-summary";
 import {
@@ -29,8 +44,7 @@ export async function getMonthOverviewAction(yearMonth?: string) {
   const { walletId } = await requireActiveWallet();
   const now = new Date();
   const ym =
-    yearMonth ??
-    formatYearMonth(now.getFullYear(), now.getMonth() + 1);
+    yearMonth ?? formatYearMonth(now.getFullYear(), now.getMonth() + 1);
 
   return getMonthOverview(walletId, ym);
 }
@@ -54,37 +68,10 @@ export async function listCategories() {
   return rows;
 }
 
-export async function listRecurrents(filters?: {
-  type?: "income" | "expense";
-  kind?: "subscription" | "recurring_expense" | "fixed_income";
-}) {
-  const { walletId } = await requireActiveWallet();
-
-  const conditions: SQL[] = [eq(recurrentTransactions.walletId, walletId)];
-
-  if (filters?.type) {
-    conditions.push(eq(recurrentTransactions.type, filters.type));
-  }
-
-  if (filters?.kind) {
-    conditions.push(eq(recurrentTransactions.recurrenceKind, filters.kind));
-  }
-
-  return db.query.recurrentTransactions.findMany({
-    where: and(...conditions),
-    orderBy: (table, { desc }) => [desc(table.createdAt)],
-    with: {
-      category: true,
-      creditCard: true,
-    },
-  });
-}
-
-export type RecurrentSummary = {
+export type PlanSummary = {
   id: string;
   description: string;
   amount: number;
-  recurrenceKind: "subscription" | "recurring_expense" | "fixed_income";
   dayOfMonth: number;
   status: "active" | "inactive";
   paymentMethod: string;
@@ -103,45 +90,137 @@ export type RecurrentSummary = {
   } | null;
 };
 
-export async function listRecurrentSummaries(filters: {
-  kind: "subscription" | "recurring_expense" | "fixed_income";
-}): Promise<RecurrentSummary[]> {
+type PlanKind = "subscription" | "recurring_expense" | "fixed_income";
+
+export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> {
   const { walletId } = await requireActiveWallet();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+
+  await ensureDomainOccurrences(walletId, year, month);
+
+  if (kind === "fixed_income") {
+    const rows = await db.query.fixedIncomes.findMany({
+      where: eq(fixedIncomes.walletId, walletId),
+      orderBy: (table, { desc: orderDesc }) => [orderDesc(table.createdAt)],
+      with: {
+        category: true,
+        incomes: {
+          where: and(
+            gte(incomes.transactionDate, getMonthRange(year, month).start),
+            lte(incomes.transactionDate, getMonthRange(year, month).end),
+            ne(incomes.status, "canceled"),
+          ),
+          orderBy: (table, { desc: orderDesc }) => [
+            orderDesc(table.transactionDate),
+          ],
+          limit: 1,
+        },
+      },
+    });
+
+    return rows.map((row) => {
+      const occurrence = row.incomes[0] ?? null;
+      return {
+        id: row.id,
+        description: row.description,
+        amount: toNumber(row.amount),
+        dayOfMonth: row.dayOfMonth,
+        status: row.status,
+        paymentMethod: row.paymentMethod,
+        startDate: row.startDate,
+        endDate: row.endDate,
+        categoryId: row.categoryId,
+        categoryName: row.category?.name ?? null,
+        creditCardId: null,
+        creditCardName: null,
+        notes: row.notes,
+        thisMonthOccurrence: occurrence
+          ? {
+              id: occurrence.id,
+              status: occurrence.status,
+              amount: toNumber(occurrence.amount),
+              transactionDate: occurrence.transactionDate,
+            }
+          : null,
+      };
+    });
+  }
+
+  if (kind === "subscription") {
+    const { start, end } = getMonthRange(year, month);
+    const rows = await db.query.subscriptions.findMany({
+      where: eq(subscriptions.walletId, walletId),
+      orderBy: (table, { desc: orderDesc }) => [orderDesc(table.createdAt)],
+      with: {
+        category: true,
+        creditCard: true,
+        charges: {
+          where: and(
+            gte(subscriptionCharges.dueDate, start),
+            lte(subscriptionCharges.dueDate, end),
+            ne(subscriptionCharges.status, "canceled"),
+          ),
+          orderBy: (table, { desc: orderDesc }) => [orderDesc(table.dueDate)],
+          limit: 1,
+        },
+      },
+    });
+
+    return rows.map((row) => {
+      const occurrence = row.charges[0] ?? null;
+      return {
+        id: row.id,
+        description: row.description,
+        amount: toNumber(row.amount),
+        dayOfMonth: row.dayOfMonth,
+        status: row.status,
+        paymentMethod: row.paymentMethod,
+        startDate: row.startDate,
+        endDate: row.endDate,
+        categoryId: row.categoryId,
+        categoryName: row.category?.name ?? null,
+        creditCardId: row.creditCardId,
+        creditCardName: row.creditCard?.name ?? null,
+        notes: row.notes,
+        thisMonthOccurrence: occurrence
+          ? {
+              id: occurrence.id,
+              status: occurrence.status,
+              amount: toNumber(occurrence.amount),
+              transactionDate: occurrence.dueDate,
+            }
+          : null,
+      };
+    });
+  }
+
   const { start, end } = getMonthRange(year, month);
-
-  await ensureRecurrentOccurrences(walletId, year, month);
-
-  const rows = await db.query.recurrentTransactions.findMany({
-    where: and(
-      eq(recurrentTransactions.walletId, walletId),
-      eq(recurrentTransactions.recurrenceKind, filters.kind),
-    ),
-    orderBy: (table, { desc }) => [desc(table.createdAt)],
+  const rows = await db.query.recurringExpenses.findMany({
+    where: eq(recurringExpenses.walletId, walletId),
+    orderBy: (table, { desc: orderDesc }) => [orderDesc(table.createdAt)],
     with: {
       category: true,
       creditCard: true,
-      transactions: {
+      charges: {
         where: and(
-          gte(transactions.transactionDate, start),
-          lte(transactions.transactionDate, end),
-          ne(transactions.status, "canceled"),
+          gte(recurringExpenseCharges.dueDate, start),
+          lte(recurringExpenseCharges.dueDate, end),
+          ne(recurringExpenseCharges.status, "canceled"),
         ),
-        orderBy: (table, { desc }) => [desc(table.transactionDate)],
+        orderBy: (table, { desc: orderDesc }) => [orderDesc(table.dueDate)],
         limit: 1,
       },
     },
   });
 
   return rows.map((row) => {
-    const occurrence = row.transactions[0] ?? null;
+    const occurrence = row.charges[0] ?? null;
     return {
       id: row.id,
       description: row.description,
       amount: toNumber(row.amount),
-      recurrenceKind: row.recurrenceKind,
       dayOfMonth: row.dayOfMonth,
       status: row.status,
       paymentMethod: row.paymentMethod,
@@ -157,96 +236,127 @@ export async function listRecurrentSummaries(filters: {
             id: occurrence.id,
             status: occurrence.status,
             amount: toNumber(occurrence.amount),
-            transactionDate: occurrence.transactionDate,
+            transactionDate: occurrence.dueDate,
           }
         : null,
     };
   });
 }
 
-export type TransactionFilters = {
+export type LedgerFilters = {
   q?: string;
   from?: string;
   to?: string;
   card?: string;
   category?: string;
   payment?: string;
-  type?: "income" | "expense";
 };
 
-export async function listTransactions(filters: TransactionFilters = {}) {
-  const { walletId } = await requireActiveWallet();
-
-  const conditions: SQL[] = [
-    eq(transactions.walletId, walletId),
-    ne(transactions.status, "canceled"),
-  ];
-
-  if (filters.type) {
-    conditions.push(eq(transactions.type, filters.type));
-  }
-
-  if (filters.q?.trim()) {
-    conditions.push(ilike(transactions.description, `%${filters.q.trim()}%`));
-  }
+function dateConditions(filters: LedgerFilters, dateColumn: AnyColumn) {
+  const conditions: SQL[] = [];
 
   if (filters.from) {
     const fromDate = parseDateOnly(filters.from);
     fromDate.setHours(0, 0, 0, 0);
-    conditions.push(gte(transactions.transactionDate, fromDate));
+    conditions.push(gte(dateColumn, fromDate));
   }
 
   if (filters.to) {
     const toDate = parseDateOnly(filters.to);
     toDate.setHours(23, 59, 59, 999);
-    conditions.push(lte(transactions.transactionDate, toDate));
+    conditions.push(lte(dateColumn, toDate));
   }
 
-  if (filters.card) {
-    conditions.push(eq(transactions.creditCardId, filters.card));
-  }
+  return conditions;
+}
 
+export async function listIncomes(filters: LedgerFilters = {}) {
+  const { walletId } = await requireActiveWallet();
+  const conditions: SQL[] = [
+    eq(incomes.walletId, walletId),
+    ne(incomes.status, "canceled"),
+    ...dateConditions(filters, incomes.transactionDate),
+  ];
+
+  if (filters.q?.trim()) {
+    conditions.push(ilike(incomes.description, `%${filters.q.trim()}%`));
+  }
   if (filters.category) {
-    conditions.push(eq(transactions.categoryId, filters.category));
+    conditions.push(eq(incomes.categoryId, filters.category));
   }
-
   if (filters.payment) {
     conditions.push(
       eq(
-        transactions.paymentMethod,
-        filters.payment as
-          | "credit_card"
-          | "debit_card"
-          | "pix"
-          | "bank_transfer"
-          | "cash",
+        incomes.paymentMethod,
+        filters.payment as typeof incomes.paymentMethod.enumValues[number],
       ),
     );
   }
 
   return db
     .select({
-      id: transactions.id,
-      description: transactions.description,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      paymentMethod: transactions.paymentMethod,
-      transactionDate: transactions.transactionDate,
-      categoryId: transactions.categoryId,
+      id: incomes.id,
+      description: incomes.description,
+      amount: incomes.amount,
+      status: incomes.status,
+      paymentMethod: incomes.paymentMethod,
+      transactionDate: incomes.transactionDate,
+      categoryId: incomes.categoryId,
       categoryName: categories.name,
-      creditCardId: transactions.creditCardId,
-      creditCardName: creditCards.name,
-      installmentNumber: transactions.installmentNumber,
-      installmentPlanId: transactions.installmentPlanId,
-      recurrentTransactionId: transactions.recurrentTransactionId,
-      notes: transactions.notes,
+      fixedIncomeId: incomes.fixedIncomeId,
+      notes: incomes.notes,
     })
-    .from(transactions)
-    .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .leftJoin(creditCards, eq(transactions.creditCardId, creditCards.id))
+    .from(incomes)
+    .leftJoin(categories, eq(incomes.categoryId, categories.id))
     .where(and(...conditions))
-    .orderBy(desc(transactions.transactionDate));
+    .orderBy(desc(incomes.transactionDate));
+}
+
+export async function listExpenses(filters: LedgerFilters = {}) {
+  const { walletId } = await requireActiveWallet();
+  const conditions: SQL[] = [
+    eq(expenses.walletId, walletId),
+    ne(expenses.status, "canceled"),
+    ...dateConditions(filters, expenses.transactionDate),
+  ];
+
+  if (filters.q?.trim()) {
+    conditions.push(ilike(expenses.description, `%${filters.q.trim()}%`));
+  }
+  if (filters.category) {
+    conditions.push(eq(expenses.categoryId, filters.category));
+  }
+  if (filters.card) {
+    conditions.push(eq(expenses.creditCardId, filters.card));
+  }
+  if (filters.payment) {
+    conditions.push(
+      eq(
+        expenses.paymentMethod,
+        filters.payment as typeof expenses.paymentMethod.enumValues[number],
+      ),
+    );
+  }
+
+  return db
+    .select({
+      id: expenses.id,
+      description: expenses.description,
+      amount: expenses.amount,
+      status: expenses.status,
+      paymentMethod: expenses.paymentMethod,
+      transactionDate: expenses.transactionDate,
+      categoryId: expenses.categoryId,
+      categoryName: categories.name,
+      creditCardId: expenses.creditCardId,
+      creditCardName: creditCards.name,
+      notes: expenses.notes,
+    })
+    .from(expenses)
+    .leftJoin(categories, eq(expenses.categoryId, categories.id))
+    .leftJoin(creditCards, eq(expenses.creditCardId, creditCards.id))
+    .where(and(...conditions))
+    .orderBy(desc(expenses.transactionDate));
 }
 
 export async function resolveMonthParam(searchParams: {
@@ -297,11 +407,11 @@ export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> 
       eq(installmentPlans.walletId, walletId),
       ne(installmentPlans.status, "canceled"),
     ),
-    orderBy: (table, { desc }) => [desc(table.createdAt)],
+    orderBy: (table, { desc: orderDesc }) => [orderDesc(table.createdAt)],
     with: {
       category: true,
       creditCard: true,
-      transactions: {
+      installments: {
         orderBy: (table, { asc }) => [asc(table.installmentNumber)],
       },
     },
@@ -310,41 +420,40 @@ export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> 
   return plans.map((plan) => {
     const totalAmount = toNumber(plan.totalAmount);
     const installmentAmount = toNumber(plan.installmentAmount);
-    const installments = plan.transactions
-      .filter((tx) => tx.status !== "canceled")
-      .map((tx) => ({
-        id: tx.id,
-        number: tx.installmentNumber ?? 0,
-        amount: toNumber(tx.amount),
-        status: tx.status,
-        dueDate: tx.transactionDate,
+    const items = plan.installments
+      .filter((row) => row.status !== "canceled")
+      .map((row) => ({
+        id: row.id,
+        number: row.installmentNumber,
+        amount: toNumber(row.amount),
+        status: row.status,
+        dueDate: row.dueDate,
       }))
       .sort((a, b) => a.number - b.number);
 
-    const paidInstallments = installments.filter(
-      (i) => i.status === "paid" || i.status === "received",
+    const paidInstallments = items.filter(
+      (item) => item.status === "paid" || item.status === "received",
     ).length;
     const totalInstallments =
-      installments.length > 0 ? installments.length : plan.totalInstallments;
+      items.length > 0 ? items.length : plan.totalInstallments;
     const remainingInstallments = Math.max(
       totalInstallments - paidInstallments,
       0,
     );
-    const paidAmount = installments
-      .filter((i) => i.status === "paid" || i.status === "received")
-      .reduce((sum, i) => sum + i.amount, 0);
+    const paidAmount = items
+      .filter((item) => item.status === "paid" || item.status === "received")
+      .reduce((sum, item) => sum + item.amount, 0);
     const remainingAmount = Math.max(totalAmount - paidAmount, 0);
     const progressPercent =
       totalInstallments > 0
         ? Math.round((paidInstallments / totalInstallments) * 100)
         : 0;
 
-    const pending = installments
-      .filter((i) => i.status === "pending")
+    const pending = items
+      .filter((item) => item.status === "pending")
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
     const nextDueDate = pending[0]?.dueDate ?? null;
-    const lastDueDate =
-      installments[installments.length - 1]?.dueDate ?? plan.firstDueDate;
+    const lastDueDate = items[items.length - 1]?.dueDate ?? plan.firstDueDate;
 
     return {
       id: plan.id,
@@ -365,7 +474,7 @@ export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> 
       categoryName: plan.category?.name ?? null,
       creditCardName: plan.creditCard?.name ?? null,
       notes: plan.notes,
-      installments,
+      installments: items,
     };
   });
 }
