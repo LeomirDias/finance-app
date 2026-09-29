@@ -5,6 +5,7 @@ import { useCallback, useEffect, useTransition } from "react";
 import { Filter, Search, X } from "lucide-react";
 
 import { Button } from "@/src/components/ui/button";
+import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { cn } from "@/src/lib/utils";
@@ -18,9 +19,6 @@ const PAYMENT_METHODS = [
   { value: "bank_transfer", label: "Transferência" },
   { value: "cash", label: "Dinheiro" },
 ] as const;
-
-const selectClass =
-  "h-11 w-full rounded-xl border border-border bg-background px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
 type TransactionFiltersProps = {
   categories: Option[];
@@ -195,37 +193,37 @@ export function TransactionFilters({
                 >
                   Categoria
                 </Label>
-                <select
+                <FormSelect
                   id="category"
                   name="category"
                   defaultValue={current.category}
-                  className={selectClass}
-                >
-                  <option value="">Todas</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  className="text-sm"
+                  options={[
+                    { value: "", label: "Todas" },
+                    ...categories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })),
+                  ]}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="card" className="text-xs text-muted-foreground">
                   Cartão
                 </Label>
-                <select
+                <FormSelect
                   id="card"
                   name="card"
                   defaultValue={current.card}
-                  className={selectClass}
-                >
-                  <option value="">Todos</option>
-                  {cards.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  className="text-sm"
+                  options={[
+                    { value: "", label: "Todos" },
+                    ...cards.map((card) => ({
+                      value: card.id,
+                      label: card.name,
+                    })),
+                  ]}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label
@@ -234,19 +232,16 @@ export function TransactionFilters({
                 >
                   Tipo de pagamento
                 </Label>
-                <select
+                <FormSelect
                   id="payment"
                   name="payment"
                   defaultValue={current.payment}
-                  className={selectClass}
-                >
-                  <option value="">Todos</option>
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+                  className="text-sm"
+                  options={[
+                    { value: "", label: "Todos" },
+                    ...PAYMENT_METHODS,
+                  ]}
+                />
               </div>
             </div>
           </div>

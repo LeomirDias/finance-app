@@ -17,6 +17,7 @@ import { formatCurrency } from "@/src/lib/helpers/format";
 import { toDateOnlyString } from "@/src/lib/finance/dates";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/button";
+import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -61,9 +62,6 @@ const STATUS_STYLES: Record<RecurrentSummary["status"], string> = {
   active: "bg-primary/15 text-primary-light",
   inactive: "bg-muted text-muted-foreground",
 };
-
-const selectClass =
-  "h-11 w-full rounded-xl border border-border bg-background px-3 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
 const initialState: FinanceActionState = {};
 
@@ -478,53 +476,45 @@ function EditRecurrentForm({
 
             <div className="space-y-2">
               <Label htmlFor="rec-paymentMethod">Pagamento</Label>
-              <select
+              <FormSelect
                 id="rec-paymentMethod"
                 name="paymentMethod"
                 defaultValue={item.paymentMethod}
-                className={selectClass}
-              >
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+                options={PAYMENT_METHODS}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="rec-categoryId">Categoria</Label>
-              <select
+              <FormSelect
                 id="rec-categoryId"
                 name="categoryId"
-                className={selectClass}
                 defaultValue={item.categoryId ?? ""}
-              >
-                <option value="">Sem categoria</option>
-                {filteredCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "Sem categoria" },
+                  ...filteredCategories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  })),
+                ]}
+              />
             </div>
 
             {showCard && (
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="rec-creditCardId">Cartão (opcional)</Label>
-                <select
+                <FormSelect
                   id="rec-creditCardId"
                   name="creditCardId"
-                  className={selectClass}
                   defaultValue={item.creditCardId ?? ""}
-                >
-                  <option value="">Nenhum</option>
-                  {cards.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "Nenhum" },
+                    ...cards.map((card) => ({
+                      value: card.id,
+                      label: card.name,
+                    })),
+                  ]}
+                />
               </div>
             )}
           </div>
@@ -707,51 +697,43 @@ export function CreatePlanButton({
                 />
                 <div className="space-y-2">
                   <Label htmlFor="new-paymentMethod">Pagamento</Label>
-                  <select
+                  <FormSelect
                     id="new-paymentMethod"
                     name="paymentMethod"
                     defaultValue={defaultPayment}
-                    className={selectClass}
-                  >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.value} value={method.value}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PAYMENT_METHODS}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-categoryId">Categoria</Label>
-                  <select
+                  <FormSelect
                     id="new-categoryId"
                     name="categoryId"
-                    className={selectClass}
                     defaultValue=""
-                  >
-                    <option value="">Sem categoria</option>
-                    {filteredCategories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Sem categoria" },
+                      ...filteredCategories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      })),
+                    ]}
+                  />
                 </div>
                 {showCard && (
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="new-creditCardId">Cartão (opcional)</Label>
-                    <select
+                    <FormSelect
                       id="new-creditCardId"
                       name="creditCardId"
-                      className={selectClass}
                       defaultValue=""
-                    >
-                      <option value="">Nenhum</option>
-                      {cards.map((card) => (
-                        <option key={card.id} value={card.id}>
-                          {card.name}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: "", label: "Nenhum" },
+                        ...cards.map((card) => ({
+                          value: card.id,
+                          label: card.name,
+                        })),
+                      ]}
+                    />
                   </div>
                 )}
               </div>

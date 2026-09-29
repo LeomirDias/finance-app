@@ -8,6 +8,7 @@ import { upsertIncomeAction } from "@/src/actions/finance/incomes";
 import { upsertFixedIncomeAction } from "@/src/actions/finance/plans";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
 import { Button } from "@/src/components/ui/button";
+import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -30,9 +31,6 @@ const PAYMENT_METHODS = [
   { value: "bank_transfer", label: "Transferência" },
   { value: "cash", label: "Dinheiro" },
 ] as const;
-
-const selectClass =
-  "h-11 w-full rounded-xl border border-border bg-background px-3 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
 const initialState: FinanceActionState = {};
 
@@ -163,15 +161,15 @@ export function IncomeFormDialog({
                     />
                     <div className="space-y-2">
                       <Label htmlFor="income-status">Status</Label>
-                      <select
+                      <FormSelect
                         id="income-status"
                         name="status"
                         defaultValue="received"
-                        className={selectClass}
-                      >
-                        <option value="pending">Pendente</option>
-                        <option value="received">Recebido</option>
-                      </select>
+                        options={[
+                          { value: "pending", label: "Pendente" },
+                          { value: "received", label: "Recebido" },
+                        ]}
+                      />
                     </div>
                   </>
                 ) : (
@@ -210,34 +208,27 @@ export function IncomeFormDialog({
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="income-payment">Pagamento</Label>
-                  <select
+                  <FormSelect
                     id="income-payment"
                     name="paymentMethod"
                     defaultValue="pix"
-                    className={selectClass}
-                  >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.value} value={method.value}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PAYMENT_METHODS}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="income-category">Categoria</Label>
-                  <select
+                  <FormSelect
                     id="income-category"
                     name="categoryId"
-                    className={selectClass}
                     defaultValue=""
-                  >
-                    <option value="">Sem categoria</option>
-                    {incomeCategories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Sem categoria" },
+                      ...incomeCategories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
               {state.error && (

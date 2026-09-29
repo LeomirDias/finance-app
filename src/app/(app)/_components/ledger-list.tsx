@@ -12,6 +12,7 @@ import type { LedgerSource } from "@/src/lib/finance/month-summary";
 import { toDateOnlyString } from "@/src/lib/finance/dates";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { Button } from "@/src/components/ui/button";
+import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -40,9 +41,6 @@ const PAYMENT_METHODS = [
   { value: "bank_transfer", label: "Transferência" },
   { value: "cash", label: "Dinheiro" },
 ] as const;
-
-const selectClass =
-  "h-11 w-full rounded-xl border border-border bg-background px-3 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
 const initialState: FinanceActionState = {};
 
@@ -324,7 +322,7 @@ function EditLedgerDialog({
               />
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
-                <select
+                <FormSelect
                   id="edit-status"
                   name="status"
                   defaultValue={
@@ -336,63 +334,58 @@ function EditLedgerDialog({
                         ? "paid"
                         : "pending"
                   }
-                  className={selectClass}
-                >
-                  <option value="pending">Pendente</option>
-                  {kind === "income" ? (
-                    <option value="received">Recebido</option>
-                  ) : (
-                    <option value="paid">Pago</option>
-                  )}
-                </select>
+                  options={
+                    kind === "income"
+                      ? [
+                          { value: "pending", label: "Pendente" },
+                          { value: "received", label: "Recebido" },
+                        ]
+                      : [
+                          { value: "pending", label: "Pendente" },
+                          { value: "paid", label: "Pago" },
+                        ]
+                  }
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-paymentMethod">Pagamento</Label>
-                <select
+                <FormSelect
                   id="edit-paymentMethod"
                   name="paymentMethod"
                   defaultValue={item.paymentMethod}
-                  className={selectClass}
-                >
-                  {PAYMENT_METHODS.map((method) => (
-                    <option key={method.value} value={method.value}>
-                      {method.label}
-                    </option>
-                  ))}
-                </select>
+                  options={PAYMENT_METHODS}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-categoryId">Categoria</Label>
-                <select
+                <FormSelect
                   id="edit-categoryId"
                   name="categoryId"
-                  className={selectClass}
                   defaultValue={item.categoryId ?? ""}
-                >
-                  <option value="">Sem categoria</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "Sem categoria" },
+                    ...categories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })),
+                  ]}
+                />
               </div>
               {kind === "expense" && (
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="edit-creditCardId">Cartão (opcional)</Label>
-                  <select
+                  <FormSelect
                     id="edit-creditCardId"
                     name="creditCardId"
-                    className={selectClass}
                     defaultValue={item.creditCardId ?? ""}
-                  >
-                    <option value="">Nenhum</option>
-                    {cards.map((card) => (
-                      <option key={card.id} value={card.id}>
-                        {card.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Nenhum" },
+                      ...cards.map((card) => ({
+                        value: card.id,
+                        label: card.name,
+                      })),
+                    ]}
+                  />
                 </div>
               )}
             </div>

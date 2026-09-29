@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { upsertExpenseAction } from "@/src/actions/finance/expenses";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
 import { Button } from "@/src/components/ui/button";
+import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -29,9 +30,6 @@ const PAYMENT_METHODS = [
   { value: "bank_transfer", label: "Transferência" },
   { value: "cash", label: "Dinheiro" },
 ] as const;
-
-const selectClass =
-  "h-11 w-full rounded-xl border border-border bg-background px-3 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
 
 const initialState: FinanceActionState = {};
 
@@ -121,62 +119,54 @@ export function ExpenseFormDialog({
                 />
                 <div className="space-y-2">
                   <Label htmlFor="expense-status">Status</Label>
-                  <select
+                  <FormSelect
                     id="expense-status"
                     name="status"
                     defaultValue="paid"
-                    className={selectClass}
-                  >
-                    <option value="pending">Pendente</option>
-                    <option value="paid">Pago</option>
-                  </select>
+                    options={[
+                      { value: "pending", label: "Pendente" },
+                      { value: "paid", label: "Pago" },
+                    ]}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="expense-payment">Pagamento</Label>
-                  <select
+                  <FormSelect
                     id="expense-payment"
                     name="paymentMethod"
                     defaultValue="pix"
-                    className={selectClass}
-                  >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.value} value={method.value}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PAYMENT_METHODS}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="expense-category">Categoria</Label>
-                  <select
+                  <FormSelect
                     id="expense-category"
                     name="categoryId"
-                    className={selectClass}
                     defaultValue=""
-                  >
-                    <option value="">Sem categoria</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Sem categoria" },
+                      ...categories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="expense-card">Cartão (opcional)</Label>
-                  <select
+                  <FormSelect
                     id="expense-card"
                     name="creditCardId"
-                    className={selectClass}
                     defaultValue=""
-                  >
-                    <option value="">Nenhum</option>
-                    {cards.map((card) => (
-                      <option key={card.id} value={card.id}>
-                        {card.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Nenhum" },
+                      ...cards.map((card) => ({
+                        value: card.id,
+                        label: card.name,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
               {state.error && (
