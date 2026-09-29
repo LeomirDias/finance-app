@@ -48,6 +48,34 @@ export type MonthTransaction = {
   group: "income" | "subscription" | "recurring" | "installment" | "one_off";
 };
 
+export type ExpenseNature =
+  | "one_off"
+  | "subscription"
+  | "recurring"
+  | "installment";
+
+export type NatureBreakdown = {
+  nature: ExpenseNature;
+  amount: number;
+  count: number;
+};
+
+export type TopExpense = {
+  id: string;
+  source: LedgerSource;
+  description: string;
+  amount: number;
+  nature: ExpenseNature;
+  categoryName: string | null;
+};
+
+const EXPENSE_NATURES: ExpenseNature[] = [
+  "one_off",
+  "subscription",
+  "recurring",
+  "installment",
+];
+
 export type MonthOverview = {
   year: number;
   month: number;
@@ -63,9 +91,12 @@ export type MonthOverview = {
   byDay: { day: number; amount: number; count: number }[];
   byWeekday: { weekday: number; label: string; amount: number }[];
   peakDays: { day: number; amount: number; count: number }[];
+  byNature: NatureBreakdown[];
+  fixedExpense: number;
+  variableExpense: number;
+  topExpenses: TopExpense[];
   pendingCount: number;
   paidCount: number;
-  avgDailyExpense: number;
   groups: {
     income: MonthTransaction[];
     subscription: MonthTransaction[];
@@ -124,6 +155,12 @@ function isRealized(status: MonthTransaction["status"]) {
 
 function isPlanned(status: MonthTransaction["status"]) {
   return status === "pending" || status === "paid" || status === "received";
+}
+
+function isExpenseNature(
+  group: MonthTransaction["group"],
+): group is ExpenseNature {
+  return group !== "income";
 }
 
 function occurrenceDate(plan: PlanWindow, year: number, month: number) {
@@ -544,8 +581,13 @@ export async function getMonthOverview(
     { id: string | null; name: string; amount: number }
   >();
   const paymentMap = new Map<string, number>();
-  const dayMap = new Map<number, { day: number; amount: number; count: number }>();
+  const oneOffDayMap = new Map<
+    number,
+    { day: number; amount: number; count: number }
+  >();
   const weekdayMap = new Map<number, number>();
+  const natureMap = new Map<ExpenseNature, { amount: number; count: number }>();
+  const topExpenseCandidates: TopExpense[] = [];
 
   const groups: MonthOverview["groups"] = {
     income: [],
@@ -596,24 +638,59 @@ export async function getMonthOverview(
       (paymentMap.get(tx.paymentMethod) ?? 0) + tx.amount,
     );
 
-    if (tx.group === "one_off") {
+    if (!isExpenseNature(tx.group)) continue;
+
+    const nature = tx.group;
+    const natureEntry = natureMap.get(nature) ?? { amount: 0, count: 0 };
+    natureEntry.amount += tx.amount;
+    natureEntry.count += 1;
+    natureMap.set(nature, natureEntry);
+
+    topExpenseCandidates.push({
+      id: tx.id,
+      source: tx.source,
+      description: tx.description,
+      amount: tx.amount,
+      nature,
+      categoryName: tx.categoryName,
+    });
+
+    if (nature === "one_off") {
       const day = tx.transactionDate.getUTCDate();
-      const dayEntry = dayMap.get(day) ?? { day, amount: 0, count: 0 };
+      const dayEntry = oneOffDayMap.get(day) ?? { day, amount: 0, count: 0 };
       dayEntry.amount += tx.amount;
       dayEntry.count += 1;
-      dayMap.set(day, dayEntry);
+      oneOffDayMap.set(day, dayEntry);
 
       const weekday = tx.transactionDate.getUTCDay();
       weekdayMap.set(weekday, (weekdayMap.get(weekday) ?? 0) + tx.amount);
     }
   }
 
-  const byDay = [...dayMap.values()]
+  const byDay = [...oneOffDayMap.values()]
     .map((day) => ({ ...day, amount: roundMoney(day.amount) }))
     .sort((a, b) => a.day - b.day);
 
-  const peakDays = [...byDay].sort((a, b) => b.amount - a.amount).slice(0, 5);
-  const daysInMonth = end.getUTCDate();
+  const peakDays = [...byDay]
+    .filter((day) => day.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  const byNature = EXPENSE_NATURES.map((nature) => {
+    const entry = natureMap.get(nature);
+    return {
+      nature,
+      amount: roundMoney(entry?.amount ?? 0),
+      count: entry?.count ?? 0,
+    };
+  });
+
+  const fixedExpense = roundMoney(
+    (natureMap.get("subscription")?.amount ?? 0) +
+      (natureMap.get("recurring")?.amount ?? 0) +
+      (natureMap.get("installment")?.amount ?? 0),
+  );
+  const variableExpense = roundMoney(natureMap.get("one_off")?.amount ?? 0);
 
   return {
     year,
@@ -640,9 +717,18 @@ export async function getMonthOverview(
       amount: roundMoney(weekdayMap.get(weekday) ?? 0),
     })),
     peakDays,
+    byNature,
+    fixedExpense,
+    variableExpense,
+    topExpenses: topExpenseCandidates
+      .sort(
+        (a, b) =>
+          b.amount - a.amount || a.description.localeCompare(b.description, "pt-BR"),
+      )
+      .slice(0, 5)
+      .map((item) => ({ ...item, amount: roundMoney(item.amount) })),
     pendingCount,
     paidCount,
-    avgDailyExpense: roundMoney(plannedExpense / Math.max(daysInMonth, 1)),
     groups,
     transactions: mapped,
   };

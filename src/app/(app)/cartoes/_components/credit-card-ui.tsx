@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Plus } from "lucide-react";
@@ -113,17 +113,21 @@ function CreditCardFormFields({
 export function NewCreditCardDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const createAction = useCallback(
+    async (prevState: FinanceActionState, formData: FormData) => {
+      const result = await upsertCreditCardAction(prevState, formData);
+      if (result.success) {
+        setOpen(false);
+        router.refresh();
+      }
+      return result;
+    },
+    [router],
+  );
   const [state, formAction, isPending] = useActionState(
-    upsertCreditCardAction,
+    createAction,
     initialState,
   );
-
-  useEffect(() => {
-    if (state.success) {
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state.success, router]);
 
   return (
     <>
@@ -176,27 +180,35 @@ export function NewCreditCardDialog() {
 export function CreditCardList({ cards }: { cards: Card[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Card | null>(null);
+  const editActionWrapper = useCallback(
+    async (prevState: FinanceActionState, formData: FormData) => {
+      const result = await upsertCreditCardAction(prevState, formData);
+      if (result.success) {
+        setEditing(null);
+        router.refresh();
+      }
+      return result;
+    },
+    [router],
+  );
+  const deleteActionWrapper = useCallback(
+    async (prevState: FinanceActionState, formData: FormData) => {
+      const result = await deleteCreditCardAction(prevState, formData);
+      if (result.success) {
+        router.refresh();
+      }
+      return result;
+    },
+    [router],
+  );
   const [editState, editAction, editPending] = useActionState(
-    upsertCreditCardAction,
+    editActionWrapper,
     initialState,
   );
-  const [deleteState, deleteAction, deletePending] = useActionState(
-    deleteCreditCardAction,
+  const [, deleteAction, deletePending] = useActionState(
+    deleteActionWrapper,
     initialState,
   );
-
-  useEffect(() => {
-    if (editState.success) {
-      setEditing(null);
-      router.refresh();
-    }
-  }, [editState.success, router]);
-
-  useEffect(() => {
-    if (deleteState.success) {
-      router.refresh();
-    }
-  }, [deleteState.success, router]);
 
   if (cards.length === 0) {
     return (
@@ -232,15 +244,14 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
                   : "Sem dia de vencimento"}
               </p>
               <span
-                className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                  card.status === "active"
+                className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${card.status === "active"
                     ? "bg-emerald-500/15 text-emerald-400"
                     : "bg-muted text-muted-foreground"
-                }`}
+                  }`}
               >
                 {card.status === "active" ? "Ativo" : card.status}
               </span>
-              <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary-light">
+              <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary-light ml-4">
                 Ver fatura
                 <ChevronRight className="size-3.5" />
               </span>

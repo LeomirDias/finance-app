@@ -73,7 +73,7 @@ export function SidebarNav() {
         <SidebarLogo />
       </SidebarHeader>
 
-      <SidebarContent className="flex items-center justify-center">
+      <SidebarContent className="flex items-center justify-start">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
