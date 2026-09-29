@@ -14,7 +14,11 @@ import { CalendarDays, CreditCard, Pencil, Plus, Repeat } from "lucide-react";
 import type { PlanSummary } from "@/src/actions/finance/queries";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
 import { formatCurrency } from "@/src/lib/helpers/format";
-import { toDateOnlyString } from "@/src/lib/finance/dates";
+import {
+  formatCalendarDate,
+  toDateOnlyString,
+  todayDateInputValue,
+} from "@/src/lib/finance/dates";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { FormSelect } from "@/src/components/ui/form-select";
@@ -87,11 +91,7 @@ type RecurrentPlansGridProps = {
 };
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  return formatCalendarDate(date);
 }
 
 function occurrenceStatusLabel(
@@ -645,8 +645,7 @@ export function CreatePlanButton({
     }
   }, [successId, returnPath, router]);
 
-  const today = new Date();
-  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayISO = todayDateInputValue();
 
   return (
     <>

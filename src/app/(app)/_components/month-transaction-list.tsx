@@ -6,6 +6,7 @@ import { Check, RotateCcw } from "lucide-react";
 
 import { toggleLedgerStatusAction } from "@/src/actions/finance/toggle-status";
 import type { MonthTransaction } from "@/src/lib/finance/month-summary";
+import { formatCalendarDate } from "@/src/lib/finance/dates";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { Button } from "@/src/components/ui/button";
 import { cn } from "@/src/lib/utils";
@@ -31,10 +32,10 @@ type MonthTransactionListProps = {
 };
 
 function formatDay(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
+  return formatCalendarDate(date, {
     day: "2-digit",
     month: "short",
-  }).format(date);
+  });
 }
 
 function statusLabel(tx: MonthTransaction) {

@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
+import { todayDateInputValue } from "@/src/lib/finance/dates";
 import { cn } from "@/src/lib/utils";
 
 type CategoryOption = { id: string; name: string };
@@ -35,8 +36,7 @@ const PAYMENT_METHODS = [
 const initialState: FinanceActionState = {};
 
 function todayISO() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return todayDateInputValue();
 }
 
 export function IncomeFormDialog({

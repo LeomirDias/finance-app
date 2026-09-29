@@ -9,7 +9,11 @@ import { upsertIncomeAction } from "@/src/actions/finance/incomes";
 import { toggleLedgerStatusAction } from "@/src/actions/finance/toggle-status";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
 import type { LedgerSource } from "@/src/lib/finance/month-summary";
-import { toDateOnlyString } from "@/src/lib/finance/dates";
+import {
+  formatCalendarDate,
+  formatDateTimeInBrazil,
+  toDateOnlyString,
+} from "@/src/lib/finance/dates";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { Button } from "@/src/components/ui/button";
 import { FormSelect } from "@/src/components/ui/form-select";
@@ -64,21 +68,11 @@ type CategoryOption = { id: string; name: string };
 type CardOption = { id: string; name: string };
 
 function formatDay(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  return formatCalendarDate(date);
 }
 
 function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return formatDateTimeInBrazil(date);
 }
 
 function statusLabel(status: LedgerItem["status"], kind: "income" | "expense") {

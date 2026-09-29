@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 
 import { createInstallmentPlanAction } from "@/src/actions/finance/upsert-installment";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
+import { todayDateInputValue } from "@/src/lib/finance/dates";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { Button } from "@/src/components/ui/button";
 import { FormSelect } from "@/src/components/ui/form-select";
@@ -35,8 +36,7 @@ const PAYMENT_METHODS = [
 const initialState: FinanceActionState = {};
 
 function todayISO() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return todayDateInputValue();
 }
 
 export function InstallmentFormDialog({

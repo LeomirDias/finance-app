@@ -552,13 +552,13 @@ export async function getMonthOverview(
     );
 
     if (tx.group === "one_off") {
-      const day = tx.transactionDate.getDate();
+      const day = tx.transactionDate.getUTCDate();
       const dayEntry = dayMap.get(day) ?? { day, amount: 0, count: 0 };
       dayEntry.amount += tx.amount;
       dayEntry.count += 1;
       dayMap.set(day, dayEntry);
 
-      const weekday = tx.transactionDate.getDay();
+      const weekday = tx.transactionDate.getUTCDay();
       weekdayMap.set(weekday, (weekdayMap.get(weekday) ?? 0) + tx.amount);
     }
   }
@@ -568,7 +568,7 @@ export async function getMonthOverview(
     .sort((a, b) => a.day - b.day);
 
   const peakDays = [...byDay].sort((a, b) => b.amount - a.amount).slice(0, 5);
-  const daysInMonth = end.getDate();
+  const daysInMonth = end.getUTCDate();
 
   return {
     year,

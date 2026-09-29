@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 
 import { upsertExpenseAction } from "@/src/actions/finance/expenses";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
-import { nextMonthDueDate } from "@/src/lib/finance/dates";
+import { formatCalendarDate, nextMonthDueDate } from "@/src/lib/finance/dates";
 import { Button } from "@/src/components/ui/button";
 import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
@@ -35,11 +35,11 @@ const PAYMENT_METHODS = [
 const initialState: FinanceActionState = {};
 
 function formatNextDueDate(dueDay: number) {
-  return new Intl.DateTimeFormat("pt-BR", {
+  return formatCalendarDate(nextMonthDueDate(new Date(), dueDay), {
     day: "2-digit",
     month: "long",
     year: "numeric",
-  }).format(nextMonthDueDate(new Date(), dueDay));
+  });
 }
 
 export function ExpenseFormDialog({

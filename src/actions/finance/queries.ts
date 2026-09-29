@@ -32,19 +32,20 @@ import {
   getMonthOverview,
 } from "@/src/lib/finance/month-summary";
 import {
+  businessCalendarParts,
+  endOfCalendarDay,
   formatYearMonth,
   getMonthRange,
-  parseDateOnly,
   parseYearMonth,
+  startOfCalendarDay,
   toNumber,
 } from "@/src/lib/finance/dates";
 import { seedWalletCategories } from "@/src/lib/finance/seed-categories";
 
 export async function getMonthOverviewAction(yearMonth?: string) {
   const { walletId } = await requireActiveWallet();
-  const now = new Date();
-  const ym =
-    yearMonth ?? formatYearMonth(now.getFullYear(), now.getMonth() + 1);
+  const today = businessCalendarParts();
+  const ym = yearMonth ?? formatYearMonth(today.year, today.month);
 
   return getMonthOverview(walletId, ym);
 }
@@ -94,9 +95,9 @@ type PlanKind = "subscription" | "recurring_expense" | "fixed_income";
 
 export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> {
   const { walletId } = await requireActiveWallet();
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const today = businessCalendarParts();
+  const year = today.year;
+  const month = today.month;
 
   await ensureDomainOccurrences(walletId, year, month);
 
@@ -256,15 +257,11 @@ function dateConditions(filters: LedgerFilters, dateColumn: AnyColumn) {
   const conditions: SQL[] = [];
 
   if (filters.from) {
-    const fromDate = parseDateOnly(filters.from);
-    fromDate.setHours(0, 0, 0, 0);
-    conditions.push(gte(dateColumn, fromDate));
+    conditions.push(gte(dateColumn, startOfCalendarDay(filters.from)));
   }
 
   if (filters.to) {
-    const toDate = parseDateOnly(filters.to);
-    toDate.setHours(23, 59, 59, 999);
-    conditions.push(lte(dateColumn, toDate));
+    conditions.push(lte(dateColumn, endOfCalendarDay(filters.to)));
   }
 
   return conditions;
@@ -365,8 +362,8 @@ export async function resolveMonthParam(searchParams: {
 }): Promise<string> {
   await requireSession();
 
-  const now = new Date();
-  const fallback = formatYearMonth(now.getFullYear(), now.getMonth() + 1);
+  const today = businessCalendarParts();
+  const fallback = formatYearMonth(today.year, today.month);
   if (!searchParams.month) return fallback;
   const { year, month } = parseYearMonth(searchParams.month);
   return formatYearMonth(year, month);

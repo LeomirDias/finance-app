@@ -6,6 +6,7 @@ import { CalendarDays, CreditCard, Layers, Trash2 } from "lucide-react";
 
 import { deleteInstallmentPlanAction } from "@/src/actions/finance/upsert-installment";
 import type { InstallmentPlanSummary } from "@/src/actions/finance/queries";
+import { formatCalendarDate } from "@/src/lib/finance/dates";
 import { formatCurrency } from "@/src/lib/helpers/format";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui/button";
@@ -40,11 +41,7 @@ const STATUS_STYLES: Record<InstallmentPlanSummary["status"], string> = {
 };
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  return formatCalendarDate(date);
 }
 
 function installmentStatusLabel(

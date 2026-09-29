@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   pgEnum,
@@ -9,10 +10,41 @@ import {
   text,
   timestamp,
   numeric,
-  date,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "@auth/core/adapters";
+
+import {
+  calendarDateFromDriver,
+  toDateOnlyString,
+  toUtcTimestampString,
+} from "@/src/lib/finance/dates";
+
+/** Coluna `date`: grava e lê só o dia civil (YYYY-MM-DD). */
+const calendarDate = customType<{ data: Date; driverData: string }>({
+  dataType() {
+    return "date";
+  },
+  toDriver(value: Date) {
+    return toDateOnlyString(value);
+  },
+  fromDriver(value: unknown) {
+    return calendarDateFromDriver(value);
+  },
+});
+
+/** Coluna `timestamp` usada como dia de lançamento/vencimento, sem hora de relógio. */
+const calendarTimestamp = customType<{ data: Date; driverData: string }>({
+  dataType() {
+    return "timestamp";
+  },
+  toDriver(value: Date) {
+    return toUtcTimestampString(value);
+  },
+  fromDriver(value: unknown) {
+    return calendarDateFromDriver(value);
+  },
+});
 
 export const statusEnum = pgEnum("status", ["active", "inactive", "blocked"]);
 
@@ -241,7 +273,7 @@ export const installmentPlans = pgTable(
     creditCardId: text("creditCardId").references(() => creditCards.id, {
       onDelete: "set null",
     }),
-    firstDueDate: date("firstDueDate", { mode: "date" }).notNull(),
+    firstDueDate: calendarDate("firstDueDate").notNull(),
     status: installmentPlanStatus("status").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
@@ -262,8 +294,8 @@ function planFields() {
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: planStatus("status").notNull(),
     dayOfMonth: integer("dayOfMonth").notNull(),
-    startDate: date("startDate", { mode: "date" }).notNull(),
-    endDate: date("endDate", { mode: "date" }),
+    startDate: calendarDate("startDate").notNull(),
+    endDate: calendarDate("endDate"),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
     notes: text("notes"),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
@@ -313,7 +345,7 @@ export const incomes = pgTable(
     fixedIncomeId: text("fixedIncomeId").references(() => fixedIncomes.id, {
       onDelete: "set null",
     }),
-    transactionDate: timestamp("transactionDate", { mode: "date" }).notNull(),
+    transactionDate: calendarTimestamp("transactionDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -349,7 +381,7 @@ export const expenses = pgTable(
     creditCardId: text("creditCardId").references(() => creditCards.id, {
       onDelete: "set null",
     }),
-    transactionDate: timestamp("transactionDate", { mode: "date" }).notNull(),
+    transactionDate: calendarTimestamp("transactionDate").notNull(),
     purchasedAt: timestamp("purchasedAt", { mode: "date" }).defaultNow().notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
@@ -415,7 +447,7 @@ export const recurringExpenseCharges = pgTable(
     creditCardId: text("creditCardId").references(() => creditCards.id, {
       onDelete: "set null",
     }),
-    dueDate: timestamp("dueDate", { mode: "date" }).notNull(),
+    dueDate: calendarTimestamp("dueDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -483,7 +515,7 @@ export const subscriptionCharges = pgTable(
     creditCardId: text("creditCardId").references(() => creditCards.id, {
       onDelete: "set null",
     }),
-    dueDate: timestamp("dueDate", { mode: "date" }).notNull(),
+    dueDate: calendarTimestamp("dueDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -526,7 +558,7 @@ export const installments = pgTable(
       onDelete: "set null",
     }),
     installmentNumber: integer("installmentNumber").notNull(),
-    dueDate: timestamp("dueDate", { mode: "date" }).notNull(),
+    dueDate: calendarTimestamp("dueDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
