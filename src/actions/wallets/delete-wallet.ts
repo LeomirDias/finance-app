@@ -2,7 +2,8 @@
 
 import { and, eq } from "drizzle-orm";
 
-import { auth, unstable_update } from "@/src/auth";
+import { unstable_update } from "@/src/auth";
+import { requireSession } from "@/src/lib/require-session";
 import { db } from "@/src/db";
 import { wallets, walletsMembers } from "@/src/db/schema";
 import { resolveDefaultWalletId } from "@/src/lib/wallet-session";
@@ -15,11 +16,7 @@ export async function deleteWalletAction(
   _prevState: WalletActionState,
   formData: FormData,
 ): Promise<WalletActionState> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: "Você precisa estar autenticado." };
-  }
+  const session = await requireSession();
 
   const parsed = DeleteWalletSchema.safeParse({
     id: formData.get("id"),
@@ -36,7 +33,7 @@ export async function deleteWalletAction(
   const membership = await db.query.walletsMembers.findFirst({
     where: and(
       eq(walletsMembers.walletId, id),
-      eq(walletsMembers.userId, session.user.id),
+      eq(walletsMembers.userId, session.userId),
     ),
   });
 
@@ -54,7 +51,7 @@ export async function deleteWalletAction(
   }
 
   if (session.walletId === id) {
-    const nextWalletId = await resolveDefaultWalletId(session.user.id);
+    const nextWalletId = await resolveDefaultWalletId(session.userId);
     await unstable_update({ walletId: nextWalletId });
   }
 

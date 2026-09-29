@@ -1,72 +1,33 @@
 import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
 
-import { db } from "@/src/db";
-import { accounts, sessions, users, verificationTokens } from "@/src/db/schema";
+import { authAdapter } from "@/src/lib/auth-adapter";
+import { SESSION_MAX_AGE_SECONDS } from "@/src/lib/credentials-session";
 import {
   assertWalletMembership,
   persistActiveWallet,
   resolveDefaultWalletId,
 } from "@/src/lib/wallet-session";
 
+function sessionExpires(expires: Date | string) {
+  return expires instanceof Date ? expires.toISOString() : expires;
+}
+
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  }),
+  adapter: authAdapter,
+  // A sessão fica na tabela `session`. O provider Credentials do Auth.js
+  // só emite JWT e não grava session/account, então o login é feito
+  // pelas actions, via adaptador.
   session: {
-    strategy: "jwt",
-    maxAge: 60 * 24 * 60 * 60,
+    strategy: "database",
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
   pages: {
     signIn: "/login",
   },
-  providers: [
-    Credentials({
-      name: "credentials",
-      credentials: {
-        email: { label: "E-mail", type: "email" },
-        password: { label: "Senha", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, email),
-        });
-
-        if (!user?.password) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(password, user.password);
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        };
-      },
-    }),
-  ],
+  providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
+      const isLoggedIn = Boolean(auth?.user?.id);
       const publicRoutes = ["/login", "/register"];
       const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
       const isWalletRoute = nextUrl.pathname.startsWith("/wallets");
@@ -82,45 +43,53 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         return false;
       }
 
-      if (!auth.walletId && !isWalletRoute) {
+      if (!auth?.walletId && !isWalletRoute) {
         return Response.redirect(new URL("/wallets/select", nextUrl));
       }
 
       return true;
     },
-    async jwt({ token, user, trigger, session }) {
-      if (user?.id) {
-        token.id = user.id;
-        token.walletId = await resolveDefaultWalletId(user.id);
+    async session({ session, user, trigger, newSession }) {
+      if (!user?.id) {
+        return {
+          expires: sessionExpires(session.expires),
+          user: {
+            id: "",
+            name: session.user?.name,
+            email: session.user?.email,
+            image: session.user?.image,
+          },
+        };
       }
 
-      if (trigger === "update" && token.id && session) {
-        const userId = token.id as string;
+      if (
+        trigger === "update" &&
+        newSession &&
+        typeof newSession === "object" &&
+        "walletId" in newSession
+      ) {
+        const nextWalletId = newSession.walletId;
 
-        if (session.walletId) {
-          await assertWalletMembership(userId, session.walletId);
-          await persistActiveWallet(userId, session.walletId);
-          token.walletId = session.walletId;
-        } else if ("walletId" in session) {
-          await persistActiveWallet(userId, null);
-          token.walletId = undefined;
+        if (typeof nextWalletId === "string" && nextWalletId.length > 0) {
+          await assertWalletMembership(user.id, nextWalletId);
+          await persistActiveWallet(user.id, nextWalletId);
+        } else {
+          await persistActiveWallet(user.id, null);
         }
       }
 
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-      }
+      const walletId = await resolveDefaultWalletId(user.id);
 
-      if (token.walletId) {
-        session.walletId = token.walletId as string;
-      } else {
-        session.walletId = undefined;
-      }
-
-      return session;
+      return {
+        expires: sessionExpires(session.expires),
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        },
+        walletId,
+      };
     },
   },
 });

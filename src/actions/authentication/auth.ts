@@ -2,11 +2,16 @@
 
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 
-import { signIn } from "@/src/auth";
 import { db } from "@/src/db";
 import { users } from "@/src/db/schema";
+import {
+  createDatabaseSession,
+  destroyDatabaseSession,
+  ensureCredentialsAccount,
+  isUniqueViolation,
+} from "@/src/lib/credentials-session";
 import {
   loginSchema,
   registerSchema,
@@ -33,21 +38,28 @@ export async function loginAction(
     };
   }
 
-  try {
-    await signIn("credentials", {
-      email: parsed.data.email,
-      password: parsed.data.password,
-      redirectTo: "/wallets/select",
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "E-mail ou senha inválidos." };
-    }
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, parsed.data.email),
+  });
 
-    throw error;
+  if (!user?.password) {
+    return { error: "E-mail ou senha inválidos." };
   }
 
-  return { success: true };
+  const isValid = await bcrypt.compare(parsed.data.password, user.password);
+
+  if (!isValid) {
+    return { error: "E-mail ou senha inválidos." };
+  }
+
+  try {
+    await ensureCredentialsAccount(user.id);
+    await createDatabaseSession(user.id);
+  } catch {
+    return { error: "Não foi possível iniciar a sessão." };
+  }
+
+  redirect("/wallets/select");
 }
 
 export async function registerAction(
@@ -81,32 +93,48 @@ export async function registerAction(
 
   const hashedPassword = await bcrypt.hash(parsed.data.password, 12);
 
-  await db.insert(users).values({
-    name: parsed.data.name,
-    email: parsed.data.email,
-    password: hashedPassword,
-  });
+  let createdId: string;
 
   try {
-    await signIn("credentials", {
-      email: parsed.data.email,
-      password: parsed.data.password,
-      redirectTo: "/wallets/select",
-    });
+    const [created] = await db
+      .insert(users)
+      .values({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: hashedPassword,
+      })
+      .returning({ id: users.id });
+
+    if (!created) {
+      return { error: "Não foi possível criar a conta." };
+    }
+
+    createdId = created.id;
   } catch (error) {
-    if (error instanceof AuthError) {
+    if (isUniqueViolation(error)) {
       return {
-        error: "Conta criada, mas não foi possível entrar automaticamente.",
+        fieldErrors: {
+          email: ["Este e-mail já está em uso."],
+        },
       };
     }
 
     throw error;
   }
 
-  return { success: true };
+  try {
+    await ensureCredentialsAccount(createdId);
+    await createDatabaseSession(createdId);
+  } catch {
+    return {
+      error: "Conta criada, mas não foi possível entrar automaticamente.",
+    };
+  }
+
+  redirect("/wallets/select");
 }
 
 export async function logoutAction() {
-  const { signOut } = await import("@/src/auth");
-  await signOut({ redirectTo: "/login" });
+  await destroyDatabaseSession();
+  redirect("/login");
 }

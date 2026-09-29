@@ -9,14 +9,14 @@ import { TooltipProvider } from "@/src/components/ui/tooltip";
 import { SidebarNav } from "@/src/components/global/sidebar-nav";
 import { AppHeader } from "@/src/components/global/app-header";
 import { MobileBottomNav } from "@/src/components/global/mobile-bottom-nav";
-import { auth } from "@/src/auth";
+import { requireSession } from "@/src/lib/require-session";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await requireSession();
   const cookieStore = await cookies();
   const sidebarCookie = cookieStore.get("sidebar_state");
   const defaultOpen = sidebarCookie ? sidebarCookie.value === "true" : false;
@@ -31,7 +31,7 @@ export default async function AppLayout({
               <SidebarTrigger className="size-11 rounded-xl" />
             </div>
             <div className="min-w-0 flex-1">
-              <AppHeader userName={session?.user?.name} />
+              <AppHeader userName={session.user.name} />
             </div>
           </div>
           <div className="flex-1">{children}</div>

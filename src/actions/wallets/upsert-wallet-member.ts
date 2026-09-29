@@ -2,8 +2,8 @@
 
 import { and, eq } from "drizzle-orm";
 
-import { auth } from "@/src/auth";
 import { db } from "@/src/db";
+import { requireSession } from "@/src/lib/require-session";
 import { users, walletsMembers } from "@/src/db/schema";
 import {
   WalletMemberSchema,
@@ -14,11 +14,7 @@ export async function upsertWalletMemberAction(
   _prevState: WalletActionState,
   formData: FormData,
 ): Promise<WalletActionState> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: "Você precisa estar autenticado." };
-  }
+  const session = await requireSession();
 
   const rawEmail = formData.get("email");
   const rawUserId = formData.get("userId");
@@ -42,7 +38,7 @@ export async function upsertWalletMemberAction(
   const membership = await db.query.walletsMembers.findFirst({
     where: and(
       eq(walletsMembers.walletId, walletId),
-      eq(walletsMembers.userId, session.user.id),
+      eq(walletsMembers.userId, session.userId),
     ),
   });
 

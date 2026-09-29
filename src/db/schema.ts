@@ -368,10 +368,34 @@ export const transactions = pgTable(
 /*** Relações ***/
 
 export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts),
+  sessions: many(sessions),
+  authenticators: many(authenticators),
   walletMemberships: many(walletsMembers),
   createdTransactions: many(transactions),
   createdRecurrentTransactions: many(recurrentTransactions),
   createdInstallmentPlans: many(installmentPlans),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const authenticatorsRelations = relations(authenticators, ({ one }) => ({
+  user: one(users, {
+    fields: [authenticators.userId],
+    references: [users.id],
+  }),
 }));
 
 export const walletsRelations = relations(wallets, ({ many }) => ({

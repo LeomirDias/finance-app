@@ -2,20 +2,16 @@
 
 import { eq } from "drizzle-orm";
 
-import { auth } from "@/src/auth";
 import { db } from "@/src/db";
 import { walletsMembers } from "@/src/db/schema";
+import { requireSession } from "@/src/lib/require-session";
 import {
   GetWalletsByUserSchema,
   type WalletRecord,
 } from "@/src/actions/wallets/wallet-schema";
 
 export async function getAllWallets(): Promise<WalletRecord[]> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error("Você precisa estar autenticado.");
-  }
+  await requireSession();
 
   return db.query.wallets.findMany({
     orderBy: (table, { desc }) => [desc(table.createdAt)],
@@ -23,16 +19,16 @@ export async function getAllWallets(): Promise<WalletRecord[]> {
 }
 
 export async function getWalletsByUser(userId: string): Promise<WalletRecord[]> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error("Você precisa estar autenticado.");
-  }
+  const session = await requireSession();
 
   const parsed = GetWalletsByUserSchema.safeParse({ userId });
 
   if (!parsed.success) {
     throw new Error(parsed.error.flatten().fieldErrors.userId?.[0]);
+  }
+
+  if (parsed.data.userId !== session.userId) {
+    throw new Error("Você não tem permissão para listar estas carteiras.");
   }
 
   const memberships = await db.query.walletsMembers.findMany({

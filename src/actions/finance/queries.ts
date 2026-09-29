@@ -11,6 +11,7 @@ import {
   transactions,
 } from "@/src/db/schema";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
+import { requireSession } from "@/src/lib/require-session";
 import {
   ensureRecurrentOccurrences,
   getMonthOverview,
@@ -251,6 +252,8 @@ export async function listTransactions(filters: TransactionFilters = {}) {
 export async function resolveMonthParam(searchParams: {
   month?: string;
 }): Promise<string> {
+  await requireSession();
+
   const now = new Date();
   const fallback = formatYearMonth(now.getFullYear(), now.getMonth() + 1);
   if (!searchParams.month) return fallback;

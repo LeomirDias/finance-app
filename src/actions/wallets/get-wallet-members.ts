@@ -2,8 +2,8 @@
 
 import { eq } from "drizzle-orm";
 
-import { auth } from "@/src/auth";
 import { db } from "@/src/db";
+import { requireSession } from "@/src/lib/require-session";
 import { walletsMembers } from "@/src/db/schema";
 import { assertWalletMembership } from "@/src/lib/wallet-session";
 
@@ -17,13 +17,9 @@ export type WalletMemberRecord = {
 export async function getWalletMembers(
   walletId: string,
 ): Promise<WalletMemberRecord[]> {
-  const session = await auth();
+  const session = await requireSession();
 
-  if (!session?.user?.id) {
-    throw new Error("Você precisa estar autenticado.");
-  }
-
-  await assertWalletMembership(session.user.id, walletId);
+  await assertWalletMembership(session.userId, walletId);
 
   const members = await db.query.walletsMembers.findMany({
     where: eq(walletsMembers.walletId, walletId),

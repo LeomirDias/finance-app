@@ -1,23 +1,19 @@
 import { redirect } from "next/navigation";
 
-import { auth } from "@/src/auth";
 import { getWalletsByUser } from "@/src/actions/wallets/get-wallets";
+import { requireSession } from "@/src/lib/require-session";
 import { Logo } from "@/src/components/global/logo";
 import { WalletForm } from "@/src/app/(app)/wallets/_components/wallet-form";
 import { WalletSelectList } from "@/src/app/(app)/wallets/_components/wallet-select-list";
 
 export default async function WalletSelectPage() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const session = await requireSession();
 
   if (session.walletId) {
     redirect("/");
   }
 
-  const wallets = await getWalletsByUser(session.user.id);
+  const wallets = await getWalletsByUser(session.userId);
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6 py-12">

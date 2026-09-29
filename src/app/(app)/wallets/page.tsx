@@ -1,5 +1,5 @@
-import { auth } from "@/src/auth";
 import { getWalletsByUser } from "@/src/actions/wallets/get-wallets";
+import { requireSession } from "@/src/lib/require-session";
 import { PageHeader } from "@/src/components/global/page-header";
 import {
   NewWalletButton,
@@ -7,11 +7,8 @@ import {
 } from "@/src/app/(app)/wallets/_components/wallet-list";
 
 export default async function WalletsPage() {
-  const session = await auth();
-  const wallets =
-    session?.user?.id != null
-      ? await getWalletsByUser(session.user.id)
-      : [];
+  const session = await requireSession();
+  const wallets = await getWalletsByUser(session.userId);
 
   return (
     <>
@@ -33,7 +30,7 @@ export default async function WalletsPage() {
 
         <WalletList
           wallets={wallets}
-          activeWalletId={session?.walletId}
+          activeWalletId={session.walletId}
         />
       </main>
     </>

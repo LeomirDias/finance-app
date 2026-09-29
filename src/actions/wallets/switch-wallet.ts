@@ -1,6 +1,7 @@
 "use server";
 
-import { auth, unstable_update } from "@/src/auth";
+import { unstable_update } from "@/src/auth";
+import { requireSession } from "@/src/lib/require-session";
 import { assertWalletMembership } from "@/src/lib/wallet-session";
 import {
   SwitchWalletSchema,
@@ -11,11 +12,7 @@ export async function switchWalletAction(
   _prevState: WalletActionState,
   formData: FormData,
 ): Promise<WalletActionState> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: "Você precisa estar autenticado." };
-  }
+  const session = await requireSession();
 
   const parsed = SwitchWalletSchema.safeParse({
     walletId: formData.get("walletId"),
@@ -30,7 +27,7 @@ export async function switchWalletAction(
   const { walletId } = parsed.data;
 
   try {
-    await assertWalletMembership(session.user.id, walletId);
+    await assertWalletMembership(session.userId, walletId);
     await unstable_update({ walletId });
   } catch (error) {
     return {

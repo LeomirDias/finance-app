@@ -1,23 +1,21 @@
 import "server-only";
 
-import { auth } from "@/src/auth";
+import { redirect } from "next/navigation";
+
+import { requireSession } from "@/src/lib/require-session";
 
 export async function requireActiveWallet(): Promise<{
   userId: string;
   walletId: string;
 }> {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    throw new Error("Você precisa estar autenticado.");
-  }
+  const session = await requireSession();
 
   if (!session.walletId) {
-    throw new Error("Nenhuma carteira ativa selecionada.");
+    redirect("/wallets/select");
   }
 
   return {
-    userId: session.user.id,
+    userId: session.userId,
     walletId: session.walletId,
   };
 }

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 
-import { auth } from "@/src/auth";
+import { requireSession } from "@/src/lib/require-session";
 import { db } from "@/src/db";
 import { walletsMembers } from "@/src/db/schema";
 import { PageHeader } from "@/src/components/global/page-header";
@@ -13,16 +13,12 @@ type EditWalletPageProps = {
 
 export default async function EditWalletPage({ params }: EditWalletPageProps) {
   const { walletId } = await params;
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    notFound();
-  }
+  const session = await requireSession();
 
   const membership = await db.query.walletsMembers.findFirst({
     where: and(
       eq(walletsMembers.walletId, walletId),
-      eq(walletsMembers.userId, session.user.id),
+      eq(walletsMembers.userId, session.userId),
     ),
     with: {
       wallet: true,

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { auth } from "@/src/auth";
+import { requireSession } from "@/src/lib/require-session";
 import { getWalletMembers } from "@/src/actions/wallets/get-wallet-members";
 import { db } from "@/src/db";
 import { walletsMembers } from "@/src/db/schema";
@@ -17,16 +17,12 @@ export default async function WalletMembersPage({
   params,
 }: WalletMembersPageProps) {
   const { walletId } = await params;
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    notFound();
-  }
+  const session = await requireSession();
 
   const membership = await db.query.walletsMembers.findFirst({
     where: and(
       eq(walletsMembers.walletId, walletId),
-      eq(walletsMembers.userId, session.user.id),
+      eq(walletsMembers.userId, session.userId),
     ),
     with: {
       wallet: true,
@@ -55,7 +51,7 @@ export default async function WalletMembersPage({
               <WalletMemberCard
                 key={member.id}
                 member={member}
-                isCurrentUser={member.userId === session.user.id}
+                isCurrentUser={member.userId === session.userId}
                 canRemove
               />
             ))}
