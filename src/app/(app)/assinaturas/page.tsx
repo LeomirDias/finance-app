@@ -10,6 +10,7 @@ import {
 } from "@/src/app/(app)/_components/recurrent-plans-ui";
 import {
   deactivateSubscriptionAction,
+  deleteSubscriptionAction,
   upsertSubscriptionAction,
 } from "@/src/actions/finance/plans";
 
@@ -82,6 +83,7 @@ export default async function AssinaturasPage({
           categoryType="expense"
           upsertAction={upsertSubscriptionAction}
           deactivateAction={deactivateSubscriptionAction}
+          deleteAction={deleteSubscriptionAction}
         />
       </main>
     </>

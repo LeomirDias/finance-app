@@ -15,6 +15,7 @@ import {
 import { IncomeFormDialog } from "@/src/app/(app)/ganhos/_components/income-form";
 import {
   deactivateFixedIncomeAction,
+  deleteFixedIncomeAction,
   upsertFixedIncomeAction,
 } from "@/src/actions/finance/plans";
 import { getCurrentMonthDateFilters } from "@/src/lib/finance/dates";
@@ -137,6 +138,7 @@ export default async function GanhosPage({ searchParams }: GanhosPageProps) {
             categoryType="income"
             upsertAction={upsertFixedIncomeAction}
             deactivateAction={deactivateFixedIncomeAction}
+            deleteAction={deleteFixedIncomeAction}
             showCard={false}
             amountClassName="text-emerald-400"
           />

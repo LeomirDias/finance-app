@@ -134,7 +134,9 @@ export async function toggleLedgerStatusAction(
       .set({ status, updatedAt: new Date() })
       .where(eq(installments.id, id));
 
-    await syncInstallmentPlan(existing.installmentPlanId, walletId);
+    if (existing.installmentPlanId) {
+      await syncInstallmentPlan(existing.installmentPlanId, walletId);
+    }
   }
 
   revalidateFinance();

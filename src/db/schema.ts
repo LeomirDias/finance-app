@@ -434,9 +434,10 @@ export const recurringExpenseCharges = pgTable(
     walletId: text("walletId")
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
-    recurringExpenseId: text("recurringExpenseId")
-      .notNull()
-      .references(() => recurringExpenses.id, { onDelete: "cascade" }),
+    recurringExpenseId: text("recurringExpenseId").references(
+      () => recurringExpenses.id,
+      { onDelete: "set null" },
+    ),
     description: text("description").notNull(),
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
@@ -502,9 +503,9 @@ export const subscriptionCharges = pgTable(
     walletId: text("walletId")
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
-    subscriptionId: text("subscriptionId")
-      .notNull()
-      .references(() => subscriptions.id, { onDelete: "cascade" }),
+    subscriptionId: text("subscriptionId").references(() => subscriptions.id, {
+      onDelete: "set null",
+    }),
     description: text("description").notNull(),
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
@@ -544,9 +545,10 @@ export const installments = pgTable(
     walletId: text("walletId")
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
-    installmentPlanId: text("installmentPlanId")
-      .notNull()
-      .references(() => installmentPlans.id, { onDelete: "cascade" }),
+    installmentPlanId: text("installmentPlanId").references(
+      () => installmentPlans.id,
+      { onDelete: "set null" },
+    ),
     description: text("description").notNull(),
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),

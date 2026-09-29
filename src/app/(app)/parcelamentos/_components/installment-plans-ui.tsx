@@ -64,9 +64,8 @@ export function InstallmentPlansGrid({ plans }: InstallmentPlansGridProps) {
   const [isPending, startTransition] = useTransition();
 
   function handleDelete(plan: InstallmentPlanSummary) {
-    const count = plan.installments.length || plan.totalInstallments;
     const confirmed = window.confirm(
-      `Excluir o parcelamento "${plan.description}"? As ${count} parcelas cadastradas também serão excluídas. Esta ação não pode ser desfeita.`,
+      `Excluir o parcelamento "${plan.description}"? O cadastro será removido e as parcelas dos meses seguintes serão excluídas de forma permanente. As parcelas até o mês atual permanecem.`,
     );
 
     if (!confirmed) return;

@@ -10,6 +10,7 @@ import {
 } from "@/src/app/(app)/_components/recurrent-plans-ui";
 import {
   deactivateRecurringExpenseAction,
+  deleteRecurringExpenseAction,
   upsertRecurringExpenseAction,
 } from "@/src/actions/finance/plans";
 
@@ -82,6 +83,7 @@ export default async function RecorrentesPage({
           categoryType="expense"
           upsertAction={upsertRecurringExpenseAction}
           deactivateAction={deactivateRecurringExpenseAction}
+          deleteAction={deleteRecurringExpenseAction}
         />
       </main>
     </>

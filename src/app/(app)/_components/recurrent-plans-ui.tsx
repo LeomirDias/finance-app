@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, CreditCard, Pencil, Plus, Repeat } from "lucide-react";
+import { CalendarDays, CreditCard, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 
 import type { PlanSummary } from "@/src/actions/finance/queries";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
@@ -86,6 +86,7 @@ type RecurrentPlansGridProps = {
   categoryType: "income" | "expense";
   upsertAction: PlanAction;
   deactivateAction: PlanAction;
+  deleteAction: PlanAction;
   showCard?: boolean;
   amountClassName?: string;
 };
@@ -112,6 +113,7 @@ export function RecurrentPlansGrid({
   categoryType,
   upsertAction,
   deactivateAction,
+  deleteAction,
   showCard = true,
   amountClassName = "text-rose-400",
 }: RecurrentPlansGridProps) {
@@ -247,6 +249,7 @@ export function RecurrentPlansGrid({
                 item={selected}
                 singularLabel={singularLabel}
                 deactivateAction={deactivateAction}
+                deleteAction={deleteAction}
                 onEdit={() => setEditing(true)}
                 onDeactivated={() => {
                   setSelected(null);
@@ -264,16 +267,22 @@ function RecurrentDetail({
   item,
   singularLabel,
   deactivateAction,
+  deleteAction,
   onEdit,
   onDeactivated,
 }: {
   item: RecurrentSummary;
   singularLabel: string;
   deactivateAction: PlanAction;
+  deleteAction: PlanAction;
   onEdit: () => void;
   onDeactivated: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<
+    "deactivate" | "delete" | null
+  >(null);
+  const [error, setError] = useState<string | null>(null);
   const occurrence = item.thisMonthOccurrence;
   const isDone =
     occurrence?.status === "paid" || occurrence?.status === "received";
@@ -345,6 +354,11 @@ function RecurrentDetail({
             {item.notes}
           </p>
         )}
+        {error && (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </p>
+        )}
       </DialogBody>
 
       <DialogFooter className="gap-2 sm:justify-between">
@@ -367,15 +381,51 @@ function RecurrentDetail({
               onClick={() => {
                 const fd = new FormData();
                 fd.set("id", item.id);
+                setError(null);
+                setPendingAction("deactivate");
                 startTransition(async () => {
-                  await deactivateAction({}, fd);
-                  onDeactivated();
+                  const result = await deactivateAction({}, fd);
+                  setPendingAction(null);
+                  if (result.success) {
+                    onDeactivated();
+                    return;
+                  }
+                  setError(result.error ?? "Não foi possível desativar.");
                 });
               }}
             >
               Desativar
             </Button>
           )}
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isPending}
+            className="h-11 gap-2 rounded-xl"
+            onClick={() => {
+              const confirmed = window.confirm(
+                `Excluir esta ${singularLabel}? O cadastro será removido e os lançamentos dos meses seguintes serão excluídos de forma permanente. Os registros até o mês atual permanecem.`,
+              );
+              if (!confirmed) return;
+
+              const fd = new FormData();
+              fd.set("id", item.id);
+              setError(null);
+              setPendingAction("delete");
+              startTransition(async () => {
+                const result = await deleteAction({}, fd);
+                setPendingAction(null);
+                if (result.success) {
+                  onDeactivated();
+                  return;
+                }
+                setError(result.error ?? "Não foi possível excluir.");
+              });
+            }}
+          >
+            <Trash2 className="size-4" />
+            {pendingAction === "delete" && isPending ? "Excluindo..." : "Excluir"}
+          </Button>
         </div>
       </DialogFooter>
     </>

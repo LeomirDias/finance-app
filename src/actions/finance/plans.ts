@@ -9,11 +9,17 @@ import {
   subscriptions,
 } from "@/src/db/schema";
 import {
+  DeleteByIdSchema,
   PlanSchema,
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import { parseDateOnly, roundMoney } from "@/src/lib/finance/dates";
+import {
+  deleteFixedIncomeAndFollowingMonths,
+  deleteRecurringExpenseAndFollowingMonths,
+  deleteSubscriptionAndFollowingMonths,
+} from "@/src/lib/finance/delete-following-occurrences";
 import { revalidateFinance } from "@/src/lib/finance/revalidate";
 
 type PlanTable =
@@ -204,6 +210,20 @@ export async function deactivateFixedIncomeAction(
   return deactivatePlan(fixedIncomes, formData);
 }
 
+export async function deleteFixedIncomeAction(
+  _prev: FinanceActionState,
+  formData: FormData,
+) {
+  return deleteOwnedPlan(
+    formData,
+    "Renda fixa inválida.",
+    "Renda fixa não encontrada.",
+    "Não foi possível excluir a renda fixa.",
+    fixedIncomes,
+    deleteFixedIncomeAndFollowingMonths,
+  );
+}
+
 export async function upsertSubscriptionAction(
   _prev: FinanceActionState,
   formData: FormData,
@@ -218,6 +238,20 @@ export async function deactivateSubscriptionAction(
   return deactivatePlan(subscriptions, formData);
 }
 
+export async function deleteSubscriptionAction(
+  _prev: FinanceActionState,
+  formData: FormData,
+) {
+  return deleteOwnedPlan(
+    formData,
+    "Assinatura inválida.",
+    "Assinatura não encontrada.",
+    "Não foi possível excluir a assinatura.",
+    subscriptions,
+    deleteSubscriptionAndFollowingMonths,
+  );
+}
+
 export async function upsertRecurringExpenseAction(
   _prev: FinanceActionState,
   formData: FormData,
@@ -230,4 +264,59 @@ export async function deactivateRecurringExpenseAction(
   formData: FormData,
 ) {
   return deactivatePlan(recurringExpenses, formData);
+}
+
+export async function deleteRecurringExpenseAction(
+  _prev: FinanceActionState,
+  formData: FormData,
+) {
+  return deleteOwnedPlan(
+    formData,
+    "Recorrência inválida.",
+    "Recorrência não encontrada.",
+    "Não foi possível excluir a recorrência.",
+    recurringExpenses,
+    deleteRecurringExpenseAndFollowingMonths,
+  );
+}
+
+async function deleteOwnedPlan(
+  formData: FormData,
+  invalidMessage: string,
+  missingMessage: string,
+  failedMessage: string,
+  table: PlanTable,
+  remove: (walletId: string, id: string) => Promise<{ id: string } | null>,
+): Promise<FinanceActionState> {
+  const { walletId } = await requireActiveWallet();
+  const parsed = DeleteByIdSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { error: invalidMessage };
+
+  const { id } = parsed.data;
+  const existing =
+    table === fixedIncomes
+      ? await db.query.fixedIncomes.findFirst({
+          where: and(eq(fixedIncomes.id, id), eq(fixedIncomes.walletId, walletId)),
+        })
+      : table === subscriptions
+        ? await db.query.subscriptions.findFirst({
+            where: and(
+              eq(subscriptions.id, id),
+              eq(subscriptions.walletId, walletId),
+            ),
+          })
+        : await db.query.recurringExpenses.findFirst({
+            where: and(
+              eq(recurringExpenses.id, id),
+              eq(recurringExpenses.walletId, walletId),
+            ),
+          });
+
+  if (!existing) return { error: missingMessage };
+
+  const deleted = await remove(walletId, id);
+  if (!deleted) return { error: failedMessage };
+
+  revalidateFinance();
+  return { success: true, data: { id: deleted.id } };
 }

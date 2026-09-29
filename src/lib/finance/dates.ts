@@ -128,6 +128,13 @@ export function parseDateOnly(value: string): Date {
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
 }
 
+/** Primeiro instante do mês seguinte ao mês corrente em Brasília. */
+export function startOfFollowingBusinessMonth(date = new Date()): Date {
+  const current = businessCalendarParts(date);
+  const next = shiftYearMonth(current.year, current.month, 1);
+  return getMonthRange(next.year, next.month).start;
+}
+
 export function shiftYearMonth(
   year: number,
   month: number,

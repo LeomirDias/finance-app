@@ -15,6 +15,7 @@ import {
   parseDateOnly,
   roundMoney,
 } from "@/src/lib/finance/dates";
+import { deleteInstallmentPlanAndFollowingMonths } from "@/src/lib/finance/delete-following-occurrences";
 import { revalidateFinance } from "@/src/lib/finance/revalidate";
 
 export async function createInstallmentPlanAction(
@@ -120,19 +121,14 @@ export async function deleteInstallmentPlanAction(
     return { error: "Parcelamento não encontrado." };
   }
 
-  const deleted = await db
-    .delete(installmentPlans)
-    .where(
-      and(eq(installmentPlans.id, id), eq(installmentPlans.walletId, walletId)),
-    )
-    .returning({ id: installmentPlans.id });
+  const deleted = await deleteInstallmentPlanAndFollowingMonths(walletId, id);
 
-  if (!deleted[0]) {
+  if (!deleted) {
     return { error: "Não foi possível excluir o parcelamento." };
   }
 
   revalidateFinance();
 
-  return { success: true, data: { id: deleted[0].id } };
+  return { success: true, data: { id: deleted.id } };
 }
 
