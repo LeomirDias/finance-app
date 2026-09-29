@@ -24,124 +24,14 @@ import {
   toNumber,
   todayDateInputValue,
 } from "@/src/lib/finance/dates";
+import type { CardStatementFilters } from "@/src/lib/finance/card-statement-filters";
+import type {
+  CardStatement,
+  CardStatementItem,
+  CardStatementKind,
+  CardStatementPhase,
+} from "@/src/lib/finance/card-statement-types";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
-
-export const STATEMENT_KINDS = [
-  { id: "expense", param: "gasto", label: "Gastos", itemLabel: "Gasto" },
-  {
-    id: "subscription",
-    param: "assinatura",
-    label: "Assinaturas",
-    itemLabel: "Assinatura",
-  },
-  {
-    id: "recurring",
-    param: "recorrente",
-    label: "Recorrentes",
-    itemLabel: "Recorrente",
-  },
-  { id: "installment", param: "compra", label: "Compras", itemLabel: "Compra" },
-] as const;
-
-export type CardStatementKind = (typeof STATEMENT_KINDS)[number]["id"];
-
-export type CardStatementToggleSource =
-  | "expense"
-  | "subscription"
-  | "recurring"
-  | "installment";
-
-export type CardStatementStatus = "pending" | "paid";
-
-export type CardStatementItem = {
-  id: string;
-  entryId: string;
-  source: CardStatementToggleSource;
-  kind: CardStatementKind;
-  description: string;
-  amount: number;
-  status: "pending" | "paid" | "received" | "canceled";
-  occurredAt: Date;
-  categoryId: string | null;
-  categoryName: string | null;
-  installmentNumber: number | null;
-  totalInstallments: number | null;
-  notes: string | null;
-};
-
-export type CardStatementPhase =
-  | "open"
-  | "due_today"
-  | "overdue"
-  | "paid"
-  | "empty"
-  | "all";
-
-export type CardStatement = {
-  card: {
-    id: string;
-    name: string;
-    institution: string | null;
-    dueDay: number | null;
-    status: "active" | "inactive" | "blocked";
-  };
-  month: string;
-  year: number;
-  monthNumber: number;
-  allTime: boolean;
-  dueDate: Date | null;
-  phase: CardStatementPhase;
-  categories: { id: string; name: string }[];
-  items: CardStatementItem[];
-  invoice: {
-    amount: number;
-    pending: number;
-    paid: number;
-    count: number;
-    byKind: Record<CardStatementKind, { amount: number; count: number }>;
-  };
-  visible: {
-    amount: number;
-    count: number;
-  };
-};
-
-const KIND_BY_PARAM: Record<string, CardStatementKind> = {
-  gasto: "expense",
-  assinatura: "subscription",
-  recorrente: "recurring",
-  compra: "installment",
-};
-
-export function parseCardStatementFilters(params: {
-  mes?: string;
-  periodo?: string;
-  q?: string;
-  tipo?: string;
-  situacao?: string;
-  categoria?: string;
-}) {
-  const today = businessCalendarParts();
-  const parsedMonth = params.mes ? parseYearMonth(params.mes) : null;
-  const month = parsedMonth
-    ? formatYearMonth(parsedMonth.year, parsedMonth.month)
-    : formatYearMonth(today.year, today.month);
-
-  const kind = params.tipo ? KIND_BY_PARAM[params.tipo] : undefined;
-  const status =
-    params.situacao === "pendente" || params.situacao === "pago"
-      ? params.situacao
-      : undefined;
-
-  return {
-    month,
-    allTime: params.periodo === "tudo",
-    q: params.q?.trim() || undefined,
-    kind,
-    status: status as CardStatementStatus | undefined,
-    categoryId: params.categoria?.trim() || undefined,
-  };
-}
 
 function emptyByKind(): CardStatement["invoice"]["byKind"] {
   return {
@@ -222,7 +112,7 @@ function matchesQuery(description: string, query: string) {
 
 export async function getCreditCardStatement(
   cardId: string,
-  filters: ReturnType<typeof parseCardStatementFilters>,
+  filters: CardStatementFilters,
 ): Promise<CardStatement | null> {
   const { walletId } = await requireActiveWallet();
 

@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import {
-  getCreditCardStatement,
-  parseCardStatementFilters,
-} from "@/src/actions/finance/card-statement";
+import { getCreditCardStatement } from "@/src/actions/finance/card-statement";
+import { parseCardStatementFilters } from "@/src/lib/finance/card-statement-filters";
 import { CardStatementView } from "@/src/app/(app)/cartoes/_components/card-statement-ui";
 import { PageHeader } from "@/src/components/global/page-header";
 import { formatMonthLabel } from "@/src/lib/finance/dates";

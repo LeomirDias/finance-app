@@ -23,7 +23,7 @@ import {
   type CardStatement,
   type CardStatementItem,
   type CardStatementKind,
-} from "@/src/actions/finance/card-statement";
+} from "@/src/lib/finance/card-statement-types";
 import { Button } from "@/src/components/ui/button";
 import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
