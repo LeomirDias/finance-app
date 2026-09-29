@@ -43,6 +43,12 @@ export function clampDayOfMonth(year: number, month: number, day: number): Date 
   return new Date(year, month - 1, safeDay, 12, 0, 0, 0);
 }
 
+/** Dia de vencimento no mês seguinte à data do lançamento. */
+export function nextMonthDueDate(from: Date, dueDay: number): Date {
+  const next = shiftYearMonth(from.getFullYear(), from.getMonth() + 1, 1);
+  return clampDayOfMonth(next.year, next.month, dueDay);
+}
+
 export function toDateOnlyString(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

@@ -30,7 +30,7 @@ export default async function CartoesPage() {
             id: c.id,
             name: c.name,
             institution: c.institution,
-            dueDate: c.dueDate,
+            dueDay: c.dueDay,
             status: c.status,
           }))}
         />

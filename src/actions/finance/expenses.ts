@@ -9,7 +9,12 @@ import {
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
-import { parseDateOnly, roundMoney, toDateOnlyString } from "@/src/lib/finance/dates";
+import {
+  nextMonthDueDate,
+  parseDateOnly,
+  roundMoney,
+  toDateOnlyString,
+} from "@/src/lib/finance/dates";
 import { revalidateFinance } from "@/src/lib/finance/revalidate";
 
 export async function upsertExpenseAction(
@@ -86,14 +91,14 @@ export async function upsertExpenseAction(
     });
 
     if (!card) return { error: "Cartão não encontrado." };
-    if (!card.dueDate) {
+    if (!card.dueDay) {
       return {
-        error: "Cadastre a data de vencimento deste cartão antes de lançar o gasto.",
+        error: "Cadastre o dia de vencimento deste cartão antes de lançar o gasto.",
       };
     }
 
     creditCardId = card.id;
-    transactionDate = parseDateOnly(card.dueDate);
+    transactionDate = nextMonthDueDate(purchasedAt, card.dueDay);
   }
 
   const [created] = await db

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 
 import { upsertExpenseAction } from "@/src/actions/finance/expenses";
 import type { FinanceActionState } from "@/src/actions/finance/finance-schema";
+import { nextMonthDueDate } from "@/src/lib/finance/dates";
 import { Button } from "@/src/components/ui/button";
 import { FormSelect } from "@/src/components/ui/form-select";
 import { Input } from "@/src/components/ui/input";
@@ -21,7 +22,7 @@ import {
 } from "@/src/components/ui/dialog";
 
 type CategoryOption = { id: string; name: string };
-type CardOption = { id: string; name: string; dueDate: string | null };
+type CardOption = { id: string; name: string; dueDay: number | null };
 
 const PAYMENT_METHODS = [
   { value: "pix", label: "Pix" },
@@ -33,13 +34,12 @@ const PAYMENT_METHODS = [
 
 const initialState: FinanceActionState = {};
 
-function formatDueDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
+function formatNextDueDate(dueDay: number) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
-  }).format(new Date(year!, month! - 1, day!));
+  }).format(nextMonthDueDate(new Date(), dueDay));
 }
 
 export function ExpenseFormDialog({
@@ -98,8 +98,8 @@ export function ExpenseFormDialog({
           <DialogHeader>
             <DialogTitle>Novo gasto</DialogTitle>
             <DialogDescription>
-              O lançamento entra como pendente. No crédito, a cobrança usa a
-              data de vencimento do cartão.
+              O lançamento entra como pendente. No crédito, a cobrança cai no
+              dia de vencimento do mês seguinte.
             </DialogDescription>
           </DialogHeader>
           <form action={action} className="flex min-h-0 flex-1 flex-col">
@@ -153,19 +153,19 @@ export function ExpenseFormDialog({
                       {state.fieldErrors.creditCardId[0]}
                     </p>
                   )}
-                  {selectedCard?.dueDate && (
+                  {selectedCard?.dueDay && (
                     <p className="text-sm text-muted-foreground">
-                      A cobrança entra em {formatDueDate(selectedCard.dueDate)}.
+                      A cobrança entra em {formatNextDueDate(selectedCard.dueDay)}.
                     </p>
                   )}
-                  {selectedCard && !selectedCard.dueDate && (
+                  {selectedCard && !selectedCard.dueDay && (
                     <p className="text-sm text-destructive">
-                      Este cartão ainda não tem data de vencimento.
+                      Este cartão ainda não tem dia de vencimento.
                     </p>
                   )}
                   {cards.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                      Cadastre um cartão com data de vencimento para lançar no
+                      Cadastre um cartão com dia de vencimento para lançar no
                       crédito.
                     </p>
                   )}

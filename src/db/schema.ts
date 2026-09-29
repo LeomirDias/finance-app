@@ -207,7 +207,7 @@ export const creditCards = pgTable(
       .references(() => wallets.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     institution: text("institution"),
-    dueDate: date("dueDate", { mode: "string" }),
+    dueDay: integer("dueDay"),
     status: statusEnum("status").notNull().default("active"),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),

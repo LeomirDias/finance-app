@@ -26,16 +26,9 @@ type Card = {
   id: string;
   name: string;
   institution: string | null;
-  dueDate: string | null;
+  dueDay: number | null;
   status: "active" | "inactive" | "blocked";
 };
-
-function formatDueDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("pt-BR").format(
-    new Date(year!, month! - 1, day!),
-  );
-}
 
 const initialState: FinanceActionState = {};
 
@@ -79,19 +72,28 @@ function CreditCardFormFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}dueDate`}>Data de vencimento</Label>
+        <Label htmlFor={`${idPrefix}dueDay`}>Dia de vencimento</Label>
         <Input
-          id={`${idPrefix}dueDate`}
-          name="dueDate"
-          type="date"
+          id={`${idPrefix}dueDay`}
+          name="dueDay"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={31}
+          step={1}
           required
-          defaultValue={card?.dueDate ?? ""}
+          placeholder="10"
+          defaultValue={card?.dueDay ?? ""}
           className="h-11 rounded-xl text-base"
-          aria-invalid={!!state.fieldErrors?.dueDate}
+          aria-invalid={!!state.fieldErrors?.dueDay}
         />
-        {state.fieldErrors?.dueDate?.[0] && (
+        <p className="text-sm text-muted-foreground">
+          Só o dia do mês, de 1 a 31. Gastos no crédito entram nesse dia do mês
+          seguinte.
+        </p>
+        {state.fieldErrors?.dueDay?.[0] && (
           <p className="text-sm text-destructive">
-            {state.fieldErrors.dueDate[0]}
+            {state.fieldErrors.dueDay[0]}
           </p>
         )}
       </div>
@@ -138,8 +140,7 @@ export function NewCreditCardDialog() {
           <DialogHeader>
             <DialogTitle>Novo cartão</DialogTitle>
             <DialogDescription>
-              Informe o vencimento da fatura em aberto. Gastos no crédito entram
-              nessa data.
+              Informe o dia em que a fatura vence todo mês.
             </DialogDescription>
           </DialogHeader>
 
@@ -220,9 +221,9 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
                 </p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
-                {card.dueDate
-                  ? `Vence em ${formatDueDate(card.dueDate)}`
-                  : "Sem data de vencimento"}
+                {card.dueDay
+                  ? `Vence todo dia ${card.dueDay}`
+                  : "Sem dia de vencimento"}
               </p>
               <span
                 className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -269,7 +270,7 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
           <DialogHeader>
             <DialogTitle>Editar cartão</DialogTitle>
             <DialogDescription>
-              Atualize o nome, a instituição ou a data de vencimento.
+              Atualize o nome, a instituição ou o dia de vencimento.
             </DialogDescription>
           </DialogHeader>
 

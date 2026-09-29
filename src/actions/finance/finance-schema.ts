@@ -116,9 +116,11 @@ export const CreditCardSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : undefined)),
-  dueDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de vencimento."),
+  dueDay: z.coerce
+    .number()
+    .int("Informe o dia de vencimento.")
+    .min(1, "Informe um dia entre 1 e 31.")
+    .max(31, "Informe um dia entre 1 e 31."),
   status: z.enum(["active", "inactive", "blocked"]).default("active"),
 });
 

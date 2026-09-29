@@ -47,7 +47,7 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
     .map((card) => ({
       id: card.id,
       name: card.name,
-      dueDate: card.dueDate,
+      dueDay: card.dueDay,
     }));
 
   return (
