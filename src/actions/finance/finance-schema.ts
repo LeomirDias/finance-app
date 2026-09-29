@@ -86,6 +86,29 @@ export const PlanSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const CategorySchema = z.object({
+  id: optionalId,
+  name: z
+    .string()
+    .trim()
+    .min(1, "Informe o nome da categoria.")
+    .max(40, "Use no máximo 40 caracteres."),
+  type: z.enum(["income", "expense"]),
+  icon: z
+    .string()
+    .trim()
+    .max(16, "Use um ícone curto.")
+    .transform((value) => (value.length > 0 ? value : undefined)),
+  color: z
+    .string()
+    .trim()
+    .transform((value) => (value.length > 0 ? value : undefined))
+    .refine(
+      (value) => value === undefined || /^#[0-9A-Fa-f]{6}$/.test(value),
+      "Informe uma cor válida.",
+    ),
+});
+
 export const CreditCardSchema = z.object({
   id: optionalId,
   name: z.string().min(1, "Informe o nome do cartão."),

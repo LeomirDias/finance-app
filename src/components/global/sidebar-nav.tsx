@@ -11,6 +11,7 @@ import {
   LogOut,
   RefreshCw,
   Sparkles,
+  Tags,
   Wallet,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ const navItems = [
   { href: "/assinaturas", label: "Assinaturas", icon: Sparkles },
   { href: "/recorrentes", label: "Recorrentes", icon: RefreshCw },
   { href: "/cartoes", label: "Cartões", icon: CreditCard },
+  { href: "/categorias", label: "Categorias", icon: Tags },
   { href: "/wallets", label: "Carteiras", icon: Wallet },
 ];
 
