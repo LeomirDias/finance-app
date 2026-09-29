@@ -13,7 +13,14 @@ import {
   upsertRecurringExpenseAction,
 } from "@/src/actions/finance/plans";
 
-export default async function RecorrentesPage() {
+type RecorrentesPageProps = {
+  searchParams: Promise<{ novo?: string }>;
+};
+
+export default async function RecorrentesPage({
+  searchParams,
+}: RecorrentesPageProps) {
+  const params = await searchParams;
   const [items, categories, cards] = await Promise.all([
     listPlanSummaries("recurring_expense"),
     listCategories(),
@@ -53,6 +60,7 @@ export default async function RecorrentesPage() {
             )}
           </p>
           <CreatePlanButton
+            key={params.novo === "1" ? "novo" : "lista"}
             label="Novo recorrente"
             title="Novo recorrente"
             description="Conta fixa que se repete todo mês, como aluguel ou condomínio."
@@ -60,6 +68,8 @@ export default async function RecorrentesPage() {
             cards={activeCards}
             categoryType="expense"
             upsertAction={upsertRecurringExpenseAction}
+            defaultOpen={params.novo === "1"}
+            returnPath="/recorrentes"
           />
         </div>
 

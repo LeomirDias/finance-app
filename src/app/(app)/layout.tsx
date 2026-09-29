@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/src/components/ui/tooltip";
 import { SidebarNav } from "@/src/components/global/sidebar-nav";
 import { AppHeader } from "@/src/components/global/app-header";
 import { MobileBottomNav } from "@/src/components/global/mobile-bottom-nav";
+import { MobileCreateMenu } from "@/src/components/global/mobile-create-menu";
 import { requireSession } from "@/src/lib/require-session";
 
 export default async function AppLayout({
@@ -35,6 +36,7 @@ export default async function AppLayout({
             </div>
           </div>
           <div className="flex-1">{children}</div>
+          <MobileCreateMenu />
           <MobileBottomNav />
         </SidebarInset>
       </TooltipProvider>

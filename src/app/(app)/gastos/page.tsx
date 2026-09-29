@@ -72,6 +72,7 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
             defaultTo={monthDefaults.to}
             action={
               <ExpenseFormDialog
+                key={params.novo === "1" ? "novo" : "lista"}
                 categories={expenseCategories}
                 cards={activeCards}
                 defaultOpen={params.novo === "1"}

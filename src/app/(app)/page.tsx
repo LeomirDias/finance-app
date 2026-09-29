@@ -70,7 +70,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <Link
         href="/gastos?novo=1"
-        className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-opacity hover:opacity-90 sm:right-8 sm:bottom-8"
+        className="fixed right-8 bottom-8 z-20 hidden size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-opacity hover:opacity-90 md:inline-flex"
         aria-label="Novo gasto"
       >
         <Plus className="size-6" />

@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ArrowDownCircle,
   ArrowUpCircle,
   CreditCard,
   Home,
-  Layers,
   Tags,
   Wallet,
 } from "lucide-react";
@@ -17,10 +15,8 @@ import { cn } from "@/src/lib/utils";
 const items = [
   { href: "/", label: "Início", icon: Home },
   { href: "/ganhos", label: "Ganhos", icon: ArrowUpCircle },
-  { href: "/gastos", label: "Gastos", icon: ArrowDownCircle },
-  { href: "/parcelamentos", label: "Parcelas", icon: Layers },
-  { href: "/cartoes", label: "Cartões", icon: CreditCard },
   { href: "/categorias", label: "Categorias", icon: Tags },
+  { href: "/cartoes", label: "Cartões", icon: CreditCard },
   { href: "/wallets", label: "Carteiras", icon: Wallet },
 ];
 
@@ -34,7 +30,7 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/90 px-1.5 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden">
-      <ul className="mx-auto grid max-w-lg grid-cols-7 gap-0.5">
+      <ul className="mx-auto grid max-w-lg grid-cols-5 gap-0.5">
         {items.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -44,7 +40,7 @@ export function MobileBottomNav() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-medium transition-colors",
+                  "flex flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-medium transition-colors",
                   active
                     ? "bg-primary/15 text-primary-light"
                     : "text-muted-foreground hover:text-foreground",

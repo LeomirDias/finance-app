@@ -13,7 +13,14 @@ import {
   upsertSubscriptionAction,
 } from "@/src/actions/finance/plans";
 
-export default async function AssinaturasPage() {
+type AssinaturasPageProps = {
+  searchParams: Promise<{ novo?: string }>;
+};
+
+export default async function AssinaturasPage({
+  searchParams,
+}: AssinaturasPageProps) {
+  const params = await searchParams;
   const [items, categories, cards] = await Promise.all([
     listPlanSummaries("subscription"),
     listCategories(),
@@ -53,6 +60,7 @@ export default async function AssinaturasPage() {
             )}
           </p>
           <CreatePlanButton
+            key={params.novo === "1" ? "novo" : "lista"}
             label="Nova assinatura"
             title="Nova assinatura"
             description="A cobrança do mês aparece no início e nesta tela."
@@ -60,6 +68,8 @@ export default async function AssinaturasPage() {
             cards={activeCards}
             categoryType="expense"
             upsertAction={upsertSubscriptionAction}
+            defaultOpen={params.novo === "1"}
+            returnPath="/assinaturas"
           />
         </div>
 

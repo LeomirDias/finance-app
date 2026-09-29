@@ -605,6 +605,8 @@ export function CreatePlanButton({
   upsertAction,
   showCard = true,
   defaultPayment = "credit_card",
+  defaultOpen = false,
+  returnPath,
 }: {
   label: string;
   title: string;
@@ -615,9 +617,11 @@ export function CreatePlanButton({
   upsertAction: PlanAction;
   showCard?: boolean;
   defaultPayment?: string;
+  defaultOpen?: boolean;
+  returnPath?: string;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [state, action, pending] = useActionState(upsertAction, initialState);
   const filteredCategories = useMemo(
     () => categories.filter((category) => category.type === categoryType),
@@ -633,7 +637,13 @@ export function CreatePlanButton({
   useEffect(() => {
     if (!successId) return;
     router.refresh();
-  }, [successId, router]);
+    if (
+      returnPath &&
+      new URLSearchParams(window.location.search).has("novo")
+    ) {
+      router.replace(returnPath);
+    }
+  }, [successId, returnPath, router]);
 
   const today = new Date();
   const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -648,7 +658,19 @@ export function CreatePlanButton({
         <Plus className="size-4" />
         {label}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (
+            !next &&
+            returnPath &&
+            new URLSearchParams(window.location.search).has("novo")
+          ) {
+            router.replace(returnPath);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>

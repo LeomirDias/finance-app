@@ -4,7 +4,14 @@ import { PageHeader } from "@/src/components/global/page-header";
 import { InstallmentPlansGrid } from "@/src/app/(app)/parcelamentos/_components/installment-plans-ui";
 import { InstallmentFormDialog } from "@/src/app/(app)/parcelamentos/_components/installment-form";
 
-export default async function ParcelamentosPage() {
+type ParcelamentosPageProps = {
+  searchParams: Promise<{ novo?: string }>;
+};
+
+export default async function ParcelamentosPage({
+  searchParams,
+}: ParcelamentosPageProps) {
+  const params = await searchParams;
   const [plans, categories, cards] = await Promise.all([
     listInstallmentPlans(),
     listCategories(),
@@ -40,8 +47,10 @@ export default async function ParcelamentosPage() {
             )}
           </p>
           <InstallmentFormDialog
+            key={params.novo === "1" ? "novo" : "lista"}
             categories={expenseCategories}
             cards={activeCards}
+            defaultOpen={params.novo === "1"}
           />
         </div>
 

@@ -42,12 +42,14 @@ function todayISO() {
 export function InstallmentFormDialog({
   categories,
   cards,
+  defaultOpen = false,
 }: {
   categories: CategoryOption[];
   cards: CardOption[];
+  defaultOpen?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [amountInput, setAmountInput] = useState("");
   const [countInput, setCountInput] = useState("2");
   const [state, action, pending] = useActionState(
@@ -64,6 +66,9 @@ export function InstallmentFormDialog({
   useEffect(() => {
     if (!successId) return;
     router.refresh();
+    if (new URLSearchParams(window.location.search).has("novo")) {
+      router.replace("/parcelamentos");
+    }
   }, [successId, router]);
 
   const total = useMemo(() => {
@@ -84,7 +89,18 @@ export function InstallmentFormDialog({
         <Plus className="size-4" />
         Novo parcelamento
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (
+            !next &&
+            new URLSearchParams(window.location.search).has("novo")
+          ) {
+            router.replace("/parcelamentos");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Novo parcelamento</DialogTitle>
