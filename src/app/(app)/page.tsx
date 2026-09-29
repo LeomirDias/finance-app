@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Início",
+};
 
 import { getMonthOverviewAction } from "@/src/actions/finance/queries";
 import { resolveMonthParam } from "@/src/actions/finance/queries";

@@ -1,7 +1,15 @@
 
+import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 
 import "./globals.css";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Juju Finance",
+    template: "%s | Juju Finance",
+  },
+};
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",

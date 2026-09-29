@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { PageHeader } from "@/src/components/global/page-header";
+
+export const metadata: Metadata = {
+  title: "Nova carteira",
+};
 import { WalletForm } from "@/src/app/(app)/wallets/_components/wallet-form";
 
 export default function NewWalletPage() {

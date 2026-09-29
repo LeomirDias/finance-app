@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { LoginForm } from "@/src/app/(auth)/_components/login-form";
+
+export const metadata: Metadata = {
+  title: "Entrar",
+};
 import { Logo } from "@/src/components/global/logo";
 
 export default function LoginPage() {

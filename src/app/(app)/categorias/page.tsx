@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { listCategories } from "@/src/actions/finance/queries";
+
+export const metadata: Metadata = {
+  title: "Categorias",
+};
 import {
   CategoryList,
   NewCategoryButton,

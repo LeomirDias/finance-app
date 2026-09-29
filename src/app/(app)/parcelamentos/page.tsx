@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { listCategories, listInstallmentPlans } from "@/src/actions/finance/queries";
+
+export const metadata: Metadata = {
+  title: "Parcelamentos",
+};
 import { listCreditCards } from "@/src/actions/finance/credit-cards";
 import { PageHeader } from "@/src/components/global/page-header";
 import { InstallmentPlansGrid } from "@/src/app/(app)/parcelamentos/_components/installment-plans-ui";

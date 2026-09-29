@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { CategoryForm } from "@/src/app/(app)/categorias/_components/category-form";
+
+export const metadata: Metadata = {
+  title: "Nova categoria",
+};
 import { PageHeader } from "@/src/components/global/page-header";
 
 export default function NewCategoryPage() {

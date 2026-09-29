@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Editar carteira",
+};
 import { and, eq } from "drizzle-orm";
 
 import { requireSession } from "@/src/lib/require-session";

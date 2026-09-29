@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Editar categoria",
+};
 
 import { getCategoryById } from "@/src/actions/finance/categories";
 import { CategoryForm } from "@/src/app/(app)/categorias/_components/category-form";

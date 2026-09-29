@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
+
 import {
   listCategories,
   listPlanSummaries,
 } from "@/src/actions/finance/queries";
+
+export const metadata: Metadata = {
+  title: "Assinaturas",
+};
 import { listCreditCards } from "@/src/actions/finance/credit-cards";
 import { PageHeader } from "@/src/components/global/page-header";
 import {

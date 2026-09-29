@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { getWalletsByUser } from "@/src/actions/wallets/get-wallets";
+
+export const metadata: Metadata = {
+  title: "Carteiras",
+};
 import { requireSession } from "@/src/lib/require-session";
 import { PageHeader } from "@/src/components/global/page-header";
 import {

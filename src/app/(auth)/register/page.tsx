@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { RegisterForm } from "@/src/app/(auth)/_components/register-form";
+
+export const metadata: Metadata = {
+  title: "Criar conta",
+};
 import { Logo } from "@/src/components/global/logo";
 
 export default function RegisterPage() {

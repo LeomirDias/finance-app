@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
+
 import { PageHeader } from "@/src/components/global/page-header";
+
+export const metadata: Metadata = {
+  title: "Cartões",
+};
 import { listCreditCards } from "@/src/actions/finance/credit-cards";
 import {
   CreditCardList,

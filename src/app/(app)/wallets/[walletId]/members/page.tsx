@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Membros",
+};
 
 import { requireSession } from "@/src/lib/require-session";
 import { getWalletMembers } from "@/src/actions/wallets/get-wallet-members";

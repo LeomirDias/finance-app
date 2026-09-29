@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: "Gastos",
+};
 
 import { PageHeader } from "@/src/components/global/page-header";
 import { listCategories, listExpenses } from "@/src/actions/finance/queries";

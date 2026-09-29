@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Selecionar carteira",
+};
 
 import { getWalletsByUser } from "@/src/actions/wallets/get-wallets";
 import { requireSession } from "@/src/lib/require-session";
