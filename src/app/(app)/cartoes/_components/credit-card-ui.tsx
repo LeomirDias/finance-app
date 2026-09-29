@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
 import {
   deleteCreditCardAction,
@@ -211,10 +212,15 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
         {cards.map((card) => (
           <li
             key={card.id}
-            className="flex flex-col justify-between gap-4 rounded-2xl border border-border/60 p-5"
+            className="flex flex-col justify-between gap-4 rounded-2xl border border-border/60 p-5 transition-colors hover:border-primary/50"
           >
-            <div>
-              <p className="font-medium">{card.name}</p>
+            <Link
+              href={`/cartoes/${card.id}`}
+              className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <p className="font-medium group-hover:text-primary-light">
+                {card.name}
+              </p>
               {card.institution && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   {card.institution}
@@ -234,7 +240,11 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
               >
                 {card.status === "active" ? "Ativo" : card.status}
               </span>
-            </div>
+              <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary-light">
+                Ver fatura
+                <ChevronRight className="size-3.5" />
+              </span>
+            </Link>
             <div className="flex gap-2">
               <Button
                 type="button"

@@ -18,7 +18,7 @@ export default async function CartoesPage() {
     <>
       <PageHeader
         title="Cartões"
-        subtitle="Cadastro simples para vincular gastos e parcelas"
+        subtitle="Selecione um cartão para ver a fatura"
         backHref="/"
         backLabel="Início"
       />

@@ -8,5 +8,6 @@ export function revalidateFinance() {
   revalidatePath("/recorrentes");
   revalidatePath("/parcelamentos");
   revalidatePath("/cartoes");
+  revalidatePath("/cartoes/[cardId]", "page");
   revalidatePath("/categorias");
 }

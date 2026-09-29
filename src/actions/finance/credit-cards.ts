@@ -21,6 +21,14 @@ export async function listCreditCards() {
   });
 }
 
+export async function getCreditCard(id: string) {
+  const { walletId } = await requireActiveWallet();
+
+  return db.query.creditCards.findFirst({
+    where: and(eq(creditCards.id, id), eq(creditCards.walletId, walletId)),
+  });
+}
+
 export async function upsertCreditCardAction(
   _prevState: FinanceActionState,
   formData: FormData,
