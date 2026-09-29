@@ -9,6 +9,7 @@ import {
   InstallmentPlanSchema,
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
+import { resolveWalletRefs } from "@/src/lib/finance/wallet-refs";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import {
   addMonths,
@@ -40,6 +41,14 @@ export async function createInstallmentPlanAction(
   }
 
   const data = parsed.data;
+  const refs = await resolveWalletRefs({
+    walletId,
+    categoryId: data.categoryId,
+    creditCardId: data.creditCardId,
+  });
+
+  if (!refs.ok) return { fieldErrors: refs.fieldErrors };
+
   const installmentAmount = roundMoney(data.installmentAmount);
   const totalAmount = roundMoney(installmentAmount * data.totalInstallments);
   const amounts = Array.from(
@@ -58,9 +67,9 @@ export async function createInstallmentPlanAction(
       installmentAmount: installmentAmount.toFixed(2),
       totalInstallments: data.totalInstallments,
       paidInstallments: 0,
-      categoryId: data.categoryId ?? null,
+      categoryId: refs.categoryId,
       paymentMethod: data.paymentMethod,
-      creditCardId: data.creditCardId ?? null,
+      creditCardId: refs.creditCardId,
       firstDueDate: firstDue,
       status: "active",
       createdByUserId: userId,
@@ -80,8 +89,8 @@ export async function createInstallmentPlanAction(
       amount: amount.toFixed(2),
       status: "pending" as const,
       paymentMethod: data.paymentMethod,
-      categoryId: data.categoryId ?? null,
-      creditCardId: data.creditCardId ?? null,
+      categoryId: refs.categoryId,
+      creditCardId: refs.creditCardId,
       installmentNumber: index + 1,
       dueDate: addMonths(firstDue, index),
       createdByUserId: userId,

@@ -43,6 +43,13 @@
       "when": 1790900000000,
       "tag": "0005_preserve_past_plan_occurrences",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791000000000,
+      "tag": "0006_wallet_scoped_refs",
+      "breakpoints": true
     }
   ]
 }

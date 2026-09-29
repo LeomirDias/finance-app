@@ -13,7 +13,7 @@ export default async function WalletSelectPage() {
     redirect("/");
   }
 
-  const wallets = await getWalletsByUser(session.userId);
+  const wallets = await getWalletsByUser();
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-6 py-12">

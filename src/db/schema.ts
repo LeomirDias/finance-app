@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   customType,
+  foreignKey,
   index,
   integer,
   pgEnum,
@@ -10,7 +11,9 @@ import {
   text,
   timestamp,
   numeric,
+  unique,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "@auth/core/adapters";
 
@@ -224,6 +227,10 @@ export const categories = pgTable(
       table.name,
       table.type,
     ),
+    idWalletUnique: unique("category_id_wallet_unique").on(
+      table.id,
+      table.walletId,
+    ),
     walletIdx: index("category_wallet_idx").on(table.walletId),
   }),
 );
@@ -245,9 +252,37 @@ export const creditCards = pgTable(
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
   },
   (table) => ({
+    idWalletUnique: unique("credit_card_id_wallet_unique").on(
+      table.id,
+      table.walletId,
+    ),
     walletIdx: index("credit_card_wallet_idx").on(table.walletId),
   }),
 );
+
+function categoryWalletFk(
+  name: string,
+  categoryId: AnyPgColumn,
+  walletId: AnyPgColumn,
+) {
+  return foreignKey({
+    name,
+    columns: [categoryId, walletId],
+    foreignColumns: [categories.id, categories.walletId],
+  });
+}
+
+function creditCardWalletFk(
+  name: string,
+  creditCardId: AnyPgColumn,
+  walletId: AnyPgColumn,
+) {
+  return foreignKey({
+    name,
+    columns: [creditCardId, walletId],
+    foreignColumns: [creditCards.id, creditCards.walletId],
+  });
+}
 
 export const installmentPlans = pgTable(
   "installment_plan",
@@ -266,13 +301,9 @@ export const installmentPlans = pgTable(
     }).notNull(),
     totalInstallments: integer("totalInstallments").notNull(),
     paidInstallments: integer("paidInstallments").default(0).notNull(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    creditCardId: text("creditCardId"),
     firstDueDate: calendarDate("firstDueDate").notNull(),
     status: installmentPlanStatus("status").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
@@ -285,6 +316,16 @@ export const installmentPlans = pgTable(
   (table) => ({
     walletIdx: index("installment_plan_wallet_idx").on(table.walletId),
     statusIdx: index("installment_plan_status_idx").on(table.status),
+    categoryWalletFk: categoryWalletFk(
+      "installment_plan_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "installment_plan_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -313,9 +354,7 @@ export const fixedIncomes = pgTable(
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
     ...planFields(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -323,6 +362,11 @@ export const fixedIncomes = pgTable(
   (table) => ({
     walletIdx: index("fixed_income_wallet_idx").on(table.walletId),
     statusIdx: index("fixed_income_status_idx").on(table.status),
+    categoryWalletFk: categoryWalletFk(
+      "fixed_income_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -339,9 +383,7 @@ export const incomes = pgTable(
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
     fixedIncomeId: text("fixedIncomeId").references(() => fixedIncomes.id, {
       onDelete: "set null",
     }),
@@ -359,6 +401,11 @@ export const incomes = pgTable(
       table.transactionDate,
     ),
     fixedIncomeIdx: index("income_fixed_income_idx").on(table.fixedIncomeId),
+    categoryWalletFk: categoryWalletFk(
+      "income_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -375,12 +422,8 @@ export const expenses = pgTable(
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
+    creditCardId: text("creditCardId"),
     transactionDate: calendarTimestamp("transactionDate").notNull(),
     purchasedAt: timestamp("purchasedAt", { mode: "date" }).defaultNow().notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
@@ -396,6 +439,16 @@ export const expenses = pgTable(
       table.transactionDate,
     ),
     categoryIdx: index("expense_category_idx").on(table.categoryId),
+    categoryWalletFk: categoryWalletFk(
+      "expense_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "expense_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -409,12 +462,8 @@ export const recurringExpenses = pgTable(
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
     ...planFields(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
+    creditCardId: text("creditCardId"),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -422,6 +471,16 @@ export const recurringExpenses = pgTable(
   (table) => ({
     walletIdx: index("recurring_expense_wallet_idx").on(table.walletId),
     statusIdx: index("recurring_expense_status_idx").on(table.status),
+    categoryWalletFk: categoryWalletFk(
+      "recurring_expense_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "recurring_expense_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -442,12 +501,8 @@ export const recurringExpenseCharges = pgTable(
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
+    creditCardId: text("creditCardId"),
     dueDate: calendarTimestamp("dueDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
@@ -465,6 +520,16 @@ export const recurringExpenseCharges = pgTable(
       table.walletId,
       table.dueDate,
     ),
+    categoryWalletFk: categoryWalletFk(
+      "recurring_expense_charge_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "recurring_expense_charge_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -478,12 +543,8 @@ export const subscriptions = pgTable(
       .notNull()
       .references(() => wallets.id, { onDelete: "cascade" }),
     ...planFields(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
+    creditCardId: text("creditCardId"),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -491,6 +552,16 @@ export const subscriptions = pgTable(
   (table) => ({
     walletIdx: index("subscription_wallet_idx").on(table.walletId),
     statusIdx: index("subscription_status_idx").on(table.status),
+    categoryWalletFk: categoryWalletFk(
+      "subscription_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "subscription_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
+    ),
   }),
 );
 
@@ -510,12 +581,8 @@ export const subscriptionCharges = pgTable(
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
+    creditCardId: text("creditCardId"),
     dueDate: calendarTimestamp("dueDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
       onDelete: "set null",
@@ -532,6 +599,16 @@ export const subscriptionCharges = pgTable(
     walletDateIdx: index("subscription_charge_wallet_date_idx").on(
       table.walletId,
       table.dueDate,
+    ),
+    categoryWalletFk: categoryWalletFk(
+      "subscription_charge_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "subscription_charge_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
     ),
   }),
 );
@@ -553,12 +630,8 @@ export const installments = pgTable(
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     status: entryStatus("status").notNull(),
     paymentMethod: paymentMethod("paymentMethod").notNull(),
-    categoryId: text("categoryId").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    creditCardId: text("creditCardId").references(() => creditCards.id, {
-      onDelete: "set null",
-    }),
+    categoryId: text("categoryId"),
+    creditCardId: text("creditCardId"),
     installmentNumber: integer("installmentNumber").notNull(),
     dueDate: calendarTimestamp("dueDate").notNull(),
     createdByUserId: text("createdByUserId").references(() => users.id, {
@@ -576,6 +649,16 @@ export const installments = pgTable(
     walletDateIdx: index("installment_wallet_date_idx").on(
       table.walletId,
       table.dueDate,
+    ),
+    categoryWalletFk: categoryWalletFk(
+      "installment_category_wallet_fk",
+      table.categoryId,
+      table.walletId,
+    ),
+    creditCardWalletFk: creditCardWalletFk(
+      "installment_credit_card_wallet_fk",
+      table.creditCardId,
+      table.walletId,
     ),
   }),
 );

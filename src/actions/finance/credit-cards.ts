@@ -8,6 +8,7 @@ import {
   CreditCardSchema,
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
+import { detachCreditCardFromWallet } from "@/src/lib/finance/wallet-refs";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import { revalidateFinance } from "@/src/lib/finance/revalidate";
 
@@ -97,7 +98,10 @@ export async function deleteCreditCardAction(
 
   if (!existing) return { error: "Cartão não encontrado." };
 
-  await db.delete(creditCards).where(eq(creditCards.id, id));
+  await detachCreditCardFromWallet(walletId, id);
+  await db
+    .delete(creditCards)
+    .where(and(eq(creditCards.id, id), eq(creditCards.walletId, walletId)));
 
   revalidateFinance();
   return { success: true, data: { id } };

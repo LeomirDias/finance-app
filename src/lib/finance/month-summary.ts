@@ -273,11 +273,17 @@ export async function getMonthOverview(
           status: incomes.status,
           paymentMethod: incomes.paymentMethod,
           transactionDate: incomes.transactionDate,
-          categoryId: incomes.categoryId,
+          categoryId: categories.id,
           categoryName: categories.name,
         })
         .from(incomes)
-        .leftJoin(categories, eq(incomes.categoryId, categories.id))
+        .leftJoin(
+          categories,
+          and(
+            eq(incomes.categoryId, categories.id),
+            eq(categories.walletId, incomes.walletId),
+          ),
+        )
         .where(
           and(
             eq(incomes.walletId, walletId),
@@ -294,14 +300,26 @@ export async function getMonthOverview(
           status: expenses.status,
           paymentMethod: expenses.paymentMethod,
           transactionDate: expenses.transactionDate,
-          categoryId: expenses.categoryId,
+          categoryId: categories.id,
           categoryName: categories.name,
-          creditCardId: expenses.creditCardId,
+          creditCardId: creditCards.id,
           creditCardName: creditCards.name,
         })
         .from(expenses)
-        .leftJoin(categories, eq(expenses.categoryId, categories.id))
-        .leftJoin(creditCards, eq(expenses.creditCardId, creditCards.id))
+        .leftJoin(
+          categories,
+          and(
+            eq(expenses.categoryId, categories.id),
+            eq(categories.walletId, expenses.walletId),
+          ),
+        )
+        .leftJoin(
+          creditCards,
+          and(
+            eq(expenses.creditCardId, creditCards.id),
+            eq(creditCards.walletId, expenses.walletId),
+          ),
+        )
         .where(
           and(
             eq(expenses.walletId, walletId),
@@ -318,16 +336,25 @@ export async function getMonthOverview(
           status: subscriptionCharges.status,
           paymentMethod: subscriptionCharges.paymentMethod,
           dueDate: subscriptionCharges.dueDate,
-          categoryId: subscriptionCharges.categoryId,
+          categoryId: categories.id,
           categoryName: categories.name,
-          creditCardId: subscriptionCharges.creditCardId,
+          creditCardId: creditCards.id,
           creditCardName: creditCards.name,
         })
         .from(subscriptionCharges)
-        .leftJoin(categories, eq(subscriptionCharges.categoryId, categories.id))
+        .leftJoin(
+          categories,
+          and(
+            eq(subscriptionCharges.categoryId, categories.id),
+            eq(categories.walletId, subscriptionCharges.walletId),
+          ),
+        )
         .leftJoin(
           creditCards,
-          eq(subscriptionCharges.creditCardId, creditCards.id),
+          and(
+            eq(subscriptionCharges.creditCardId, creditCards.id),
+            eq(creditCards.walletId, subscriptionCharges.walletId),
+          ),
         )
         .where(
           and(
@@ -345,19 +372,25 @@ export async function getMonthOverview(
           status: recurringExpenseCharges.status,
           paymentMethod: recurringExpenseCharges.paymentMethod,
           dueDate: recurringExpenseCharges.dueDate,
-          categoryId: recurringExpenseCharges.categoryId,
+          categoryId: categories.id,
           categoryName: categories.name,
-          creditCardId: recurringExpenseCharges.creditCardId,
+          creditCardId: creditCards.id,
           creditCardName: creditCards.name,
         })
         .from(recurringExpenseCharges)
         .leftJoin(
           categories,
-          eq(recurringExpenseCharges.categoryId, categories.id),
+          and(
+            eq(recurringExpenseCharges.categoryId, categories.id),
+            eq(categories.walletId, recurringExpenseCharges.walletId),
+          ),
         )
         .leftJoin(
           creditCards,
-          eq(recurringExpenseCharges.creditCardId, creditCards.id),
+          and(
+            eq(recurringExpenseCharges.creditCardId, creditCards.id),
+            eq(creditCards.walletId, recurringExpenseCharges.walletId),
+          ),
         )
         .where(
           and(
@@ -375,16 +408,28 @@ export async function getMonthOverview(
           status: installments.status,
           paymentMethod: installments.paymentMethod,
           dueDate: installments.dueDate,
-          categoryId: installments.categoryId,
+          categoryId: categories.id,
           categoryName: categories.name,
-          creditCardId: installments.creditCardId,
+          creditCardId: creditCards.id,
           creditCardName: creditCards.name,
           installmentPlanId: installments.installmentPlanId,
           installmentNumber: installments.installmentNumber,
         })
         .from(installments)
-        .leftJoin(categories, eq(installments.categoryId, categories.id))
-        .leftJoin(creditCards, eq(installments.creditCardId, creditCards.id))
+        .leftJoin(
+          categories,
+          and(
+            eq(installments.categoryId, categories.id),
+            eq(categories.walletId, installments.walletId),
+          ),
+        )
+        .leftJoin(
+          creditCards,
+          and(
+            eq(installments.creditCardId, creditCards.id),
+            eq(creditCards.walletId, installments.walletId),
+          ),
+        )
         .where(
           and(
             eq(installments.walletId, walletId),

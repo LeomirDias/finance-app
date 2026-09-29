@@ -8,6 +8,7 @@ import {
   ExpenseSchema,
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
+import { resolveWalletRefs } from "@/src/lib/finance/wallet-refs";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import {
   nextMonthDueDate,
@@ -40,6 +41,14 @@ export async function upsertExpenseAction(
   }
 
   const data = parsed.data;
+  const refs = await resolveWalletRefs({
+    walletId,
+    categoryId: data.categoryId,
+    creditCardId: data.id ? data.creditCardId : undefined,
+  });
+
+  if (!refs.ok) return { fieldErrors: refs.fieldErrors };
+
   const amount = roundMoney(data.amount).toFixed(2);
 
   if (data.id) {
@@ -60,8 +69,8 @@ export async function upsertExpenseAction(
         amount,
         status: data.status ?? existing.status,
         paymentMethod: data.paymentMethod,
-        categoryId: data.categoryId ?? null,
-        creditCardId: data.creditCardId ?? null,
+        categoryId: refs.categoryId,
+        creditCardId: refs.creditCardId,
         transactionDate,
         notes: data.notes ?? null,
         updatedAt: new Date(),
@@ -109,7 +118,7 @@ export async function upsertExpenseAction(
       amount,
       status: "pending",
       paymentMethod: data.paymentMethod,
-      categoryId: data.categoryId ?? null,
+      categoryId: refs.categoryId,
       creditCardId,
       transactionDate,
       purchasedAt,

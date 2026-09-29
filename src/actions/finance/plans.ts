@@ -13,6 +13,7 @@ import {
   PlanSchema,
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
+import { resolveWalletRefs } from "@/src/lib/finance/wallet-refs";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import { parseDateOnly, roundMoney } from "@/src/lib/finance/dates";
 import {
@@ -53,6 +54,14 @@ async function upsertPlan(
   }
 
   const data = parsed.data;
+  const refs = await resolveWalletRefs({
+    walletId,
+    categoryId: data.categoryId,
+    creditCardId: withCard ? data.creditCardId : undefined,
+  });
+
+  if (!refs.ok) return { fieldErrors: refs.fieldErrors };
+
   const amount = roundMoney(data.amount).toFixed(2);
   const startDate = parseDateOnly(data.startDate);
   const endDate = data.endDate ? parseDateOnly(data.endDate) : null;
@@ -64,7 +73,7 @@ async function upsertPlan(
     startDate,
     endDate,
     paymentMethod: data.paymentMethod,
-    categoryId: data.categoryId ?? null,
+    categoryId: refs.categoryId,
     notes: data.notes ?? null,
     updatedAt: new Date(),
   };
@@ -96,12 +105,12 @@ async function upsertPlan(
     } else if (table === subscriptions) {
       await db
         .update(subscriptions)
-        .set({ ...shared, creditCardId: data.creditCardId ?? null })
+        .set({ ...shared, creditCardId: refs.creditCardId })
         .where(eq(subscriptions.id, data.id));
     } else {
       await db
         .update(recurringExpenses)
-        .set({ ...shared, creditCardId: data.creditCardId ?? null })
+        .set({ ...shared, creditCardId: refs.creditCardId })
         .where(eq(recurringExpenses.id, data.id));
     }
 
@@ -126,7 +135,7 @@ async function upsertPlan(
 
   const withCardValues = {
     ...values,
-    creditCardId: data.creditCardId ?? null,
+    creditCardId: refs.creditCardId,
   };
 
   if (table === subscriptions) {

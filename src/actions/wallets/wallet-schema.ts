@@ -40,10 +40,6 @@ export const SwitchWalletSchema = z.object({
   walletId: z.string().min(1, "Informe a carteira."),
 });
 
-export const GetWalletsByUserSchema = z.object({
-  userId: z.string().min(1, "Informe o usuário."),
-});
-
 export type WalletInput = z.infer<typeof WalletSchema>;
 export type WalletMemberInput = z.infer<typeof WalletMemberSchema>;
 

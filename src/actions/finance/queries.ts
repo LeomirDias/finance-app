@@ -93,6 +93,17 @@ export type PlanSummary = {
 
 type PlanKind = "subscription" | "recurring_expense" | "fixed_income";
 
+function sameWalletLabel(
+  record: { id: string; walletId: string; name: string } | null | undefined,
+  walletId: string,
+) {
+  if (!record || record.walletId !== walletId) {
+    return { id: null, name: null };
+  }
+
+  return { id: record.id, name: record.name };
+}
+
 export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> {
   const { walletId } = await requireActiveWallet();
   const today = businessCalendarParts();
@@ -123,6 +134,7 @@ export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> 
 
     return rows.map((row) => {
       const occurrence = row.incomes[0] ?? null;
+      const category = sameWalletLabel(row.category, walletId);
       return {
         id: row.id,
         description: row.description,
@@ -132,8 +144,8 @@ export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> 
         paymentMethod: row.paymentMethod,
         startDate: row.startDate,
         endDate: row.endDate,
-        categoryId: row.categoryId,
-        categoryName: row.category?.name ?? null,
+        categoryId: category.id,
+        categoryName: category.name,
         creditCardId: null,
         creditCardName: null,
         notes: row.notes,
@@ -171,6 +183,8 @@ export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> 
 
     return rows.map((row) => {
       const occurrence = row.charges[0] ?? null;
+      const category = sameWalletLabel(row.category, walletId);
+      const creditCard = sameWalletLabel(row.creditCard, walletId);
       return {
         id: row.id,
         description: row.description,
@@ -180,10 +194,10 @@ export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> 
         paymentMethod: row.paymentMethod,
         startDate: row.startDate,
         endDate: row.endDate,
-        categoryId: row.categoryId,
-        categoryName: row.category?.name ?? null,
-        creditCardId: row.creditCardId,
-        creditCardName: row.creditCard?.name ?? null,
+        categoryId: category.id,
+        categoryName: category.name,
+        creditCardId: creditCard.id,
+        creditCardName: creditCard.name,
         notes: row.notes,
         thisMonthOccurrence: occurrence
           ? {
@@ -218,6 +232,8 @@ export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> 
 
   return rows.map((row) => {
     const occurrence = row.charges[0] ?? null;
+    const category = sameWalletLabel(row.category, walletId);
+    const creditCard = sameWalletLabel(row.creditCard, walletId);
     return {
       id: row.id,
       description: row.description,
@@ -227,10 +243,10 @@ export async function listPlanSummaries(kind: PlanKind): Promise<PlanSummary[]> 
       paymentMethod: row.paymentMethod,
       startDate: row.startDate,
       endDate: row.endDate,
-      categoryId: row.categoryId,
-      categoryName: row.category?.name ?? null,
-      creditCardId: row.creditCardId,
-      creditCardName: row.creditCard?.name ?? null,
+      categoryId: category.id,
+      categoryName: category.name,
+      creditCardId: creditCard.id,
+      creditCardName: creditCard.name,
       notes: row.notes,
       thisMonthOccurrence: occurrence
         ? {
@@ -298,13 +314,19 @@ export async function listIncomes(filters: LedgerFilters = {}) {
       status: incomes.status,
       paymentMethod: incomes.paymentMethod,
       transactionDate: incomes.transactionDate,
-      categoryId: incomes.categoryId,
+      categoryId: categories.id,
       categoryName: categories.name,
       fixedIncomeId: incomes.fixedIncomeId,
       notes: incomes.notes,
     })
     .from(incomes)
-    .leftJoin(categories, eq(incomes.categoryId, categories.id))
+    .leftJoin(
+      categories,
+      and(
+        eq(incomes.categoryId, categories.id),
+        eq(categories.walletId, incomes.walletId),
+      ),
+    )
     .where(and(...conditions))
     .orderBy(desc(incomes.transactionDate));
 }
@@ -343,16 +365,28 @@ export async function listExpenses(filters: LedgerFilters = {}) {
       status: expenses.status,
       paymentMethod: expenses.paymentMethod,
       transactionDate: expenses.transactionDate,
-      categoryId: expenses.categoryId,
+      categoryId: categories.id,
       categoryName: categories.name,
-      creditCardId: expenses.creditCardId,
+      creditCardId: creditCards.id,
       creditCardName: creditCards.name,
       purchasedAt: expenses.purchasedAt,
       notes: expenses.notes,
     })
     .from(expenses)
-    .leftJoin(categories, eq(expenses.categoryId, categories.id))
-    .leftJoin(creditCards, eq(expenses.creditCardId, creditCards.id))
+    .leftJoin(
+      categories,
+      and(
+        eq(expenses.categoryId, categories.id),
+        eq(categories.walletId, expenses.walletId),
+      ),
+    )
+    .leftJoin(
+      creditCards,
+      and(
+        eq(expenses.creditCardId, creditCards.id),
+        eq(creditCards.walletId, expenses.walletId),
+      ),
+    )
     .where(and(...conditions))
     .orderBy(desc(expenses.transactionDate));
 }
@@ -452,6 +486,8 @@ export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> 
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
     const nextDueDate = pending[0]?.dueDate ?? null;
     const lastDueDate = items[items.length - 1]?.dueDate ?? plan.firstDueDate;
+    const category = sameWalletLabel(plan.category, walletId);
+    const creditCard = sameWalletLabel(plan.creditCard, walletId);
 
     return {
       id: plan.id,
@@ -469,8 +505,8 @@ export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> 
       firstDueDate: plan.firstDueDate,
       lastDueDate,
       nextDueDate,
-      categoryName: plan.category?.name ?? null,
-      creditCardName: plan.creditCard?.name ?? null,
+      categoryName: category.name,
+      creditCardName: creditCard.name,
       notes: plan.notes,
       installments: items,
     };

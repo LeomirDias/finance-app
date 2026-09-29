@@ -10,6 +10,7 @@ import { db } from "@/src/db";
 import { categories } from "@/src/db/schema";
 import { isUniqueViolation } from "@/src/lib/credentials-session";
 import { revalidateFinance } from "@/src/lib/finance/revalidate";
+import { detachCategoryFromWallet } from "@/src/lib/finance/wallet-refs";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 
 const duplicateNameError =
@@ -137,7 +138,10 @@ export async function deleteCategoryAction(
 
   if (!existing) return { error: "Categoria não encontrada." };
 
-  await db.delete(categories).where(eq(categories.id, id));
+  await detachCategoryFromWallet(walletId, id);
+  await db
+    .delete(categories)
+    .where(and(eq(categories.id, id), eq(categories.walletId, walletId)));
 
   revalidateFinance();
   return { success: true, data: { id } };

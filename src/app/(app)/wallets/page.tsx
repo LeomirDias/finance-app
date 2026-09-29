@@ -8,7 +8,7 @@ import {
 
 export default async function WalletsPage() {
   const session = await requireSession();
-  const wallets = await getWalletsByUser(session.userId);
+  const wallets = await getWalletsByUser();
 
   return (
     <>

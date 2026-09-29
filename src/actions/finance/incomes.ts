@@ -8,6 +8,7 @@ import {
   IncomeSchema,
   type FinanceActionState,
 } from "@/src/actions/finance/finance-schema";
+import { resolveWalletRefs } from "@/src/lib/finance/wallet-refs";
 import { requireActiveWallet } from "@/src/lib/require-active-wallet";
 import { parseDateOnly, roundMoney } from "@/src/lib/finance/dates";
 import { revalidateFinance } from "@/src/lib/finance/revalidate";
@@ -34,6 +35,13 @@ export async function upsertIncomeAction(
   }
 
   const data = parsed.data;
+  const refs = await resolveWalletRefs({
+    walletId,
+    categoryId: data.categoryId,
+  });
+
+  if (!refs.ok) return { fieldErrors: refs.fieldErrors };
+
   const amount = roundMoney(data.amount).toFixed(2);
   const transactionDate = parseDateOnly(data.transactionDate);
 
@@ -57,7 +65,7 @@ export async function upsertIncomeAction(
         amount,
         status: data.status,
         paymentMethod: data.paymentMethod,
-        categoryId: data.categoryId ?? null,
+        categoryId: refs.categoryId,
         transactionDate,
         notes: data.notes ?? null,
         updatedAt: new Date(),
@@ -76,7 +84,7 @@ export async function upsertIncomeAction(
       amount,
       status: data.status,
       paymentMethod: data.paymentMethod,
-      categoryId: data.categoryId ?? null,
+      categoryId: refs.categoryId,
       transactionDate,
       notes: data.notes ?? null,
       createdByUserId: userId,
