@@ -16,7 +16,7 @@ export function Logo({ showText = true, className }: LogoProps) {
       />
       {showText && (
         <h1 className="text-xl font-bold tracking-tight text-primary-light">
-          Jujis Finance
+          Juju Finance
         </h1>
       )}
     </div>

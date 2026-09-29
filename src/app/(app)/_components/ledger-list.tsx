@@ -55,6 +55,7 @@ export type LedgerItem = {
   categoryName: string | null;
   creditCardId?: string | null;
   creditCardName?: string | null;
+  purchasedAt?: Date | null;
   notes: string | null;
   fixedIncomeId?: string | null;
 };
@@ -67,6 +68,16 @@ function formatDay(date: Date) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  }).format(date);
+}
+
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -162,10 +173,15 @@ export function LedgerList({
                     >
                       {item.description}
                     </p>
-                    {(item.creditCardName || item.fixedIncomeId) && (
+                    {(item.creditCardName ||
+                      item.fixedIncomeId ||
+                      item.purchasedAt) && (
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {[
                           item.creditCardName,
+                          item.purchasedAt
+                            ? `Feito em ${formatDateTime(item.purchasedAt)}`
+                            : null,
                           item.fixedIncomeId ? "Renda fixa" : null,
                         ]
                           .filter(Boolean)

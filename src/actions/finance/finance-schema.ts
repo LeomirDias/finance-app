@@ -39,11 +39,14 @@ export const ExpenseSchema = z.object({
   id: optionalId,
   description: z.string().min(1, "Informe a descrição."),
   amount: moneySchema,
-  status: z.enum(["pending", "paid", "canceled"]),
+  status: z.enum(["pending", "paid", "canceled"]).optional(),
   paymentMethod: paymentMethodSchema,
   categoryId: optionalId,
   creditCardId: optionalId,
-  transactionDate: z.string().min(1, "Informe a data."),
+  transactionDate: z
+    .string()
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
   notes: z.string().optional(),
 });
 
@@ -90,6 +93,9 @@ export const CreditCardSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : undefined)),
+  dueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de vencimento."),
   status: z.enum(["active", "inactive", "blocked"]).default("active"),
 });
 

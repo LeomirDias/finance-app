@@ -14,21 +14,30 @@ export function FormSelect({
   id,
   name,
   defaultValue = "",
+  value,
+  onValueChange,
   options,
   className,
 }: {
   id?: string;
   name: string;
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string | null) => void;
   options: readonly FormSelectOption[];
   className?: string;
 }) {
   return (
     <SelectPrimitive.Root
       name={name}
-      defaultValue={defaultValue}
       items={options}
       modal={false}
+      {...(value !== undefined
+        ? {
+            value,
+            onValueChange: (next: string | null) => onValueChange?.(next),
+          }
+        : { defaultValue })}
     >
       <SelectPrimitive.Trigger
         id={id}

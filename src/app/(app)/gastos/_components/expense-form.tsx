@@ -21,7 +21,7 @@ import {
 } from "@/src/components/ui/dialog";
 
 type CategoryOption = { id: string; name: string };
-type CardOption = { id: string; name: string };
+type CardOption = { id: string; name: string; dueDate: string | null };
 
 const PAYMENT_METHODS = [
   { value: "pix", label: "Pix" },
@@ -33,9 +33,13 @@ const PAYMENT_METHODS = [
 
 const initialState: FinanceActionState = {};
 
-function todayISO() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+function formatDueDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year!, month! - 1, day!));
 }
 
 export function ExpenseFormDialog({
@@ -49,6 +53,8 @@ export function ExpenseFormDialog({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
+  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [creditCardId, setCreditCardId] = useState("");
   const [state, action, pending] = useActionState(
     upsertExpenseAction,
     initialState,
@@ -58,6 +64,8 @@ export function ExpenseFormDialog({
   if (successId && successId !== seenSuccessId) {
     setSeenSuccessId(successId);
     setOpen(false);
+    setPaymentMethod("pix");
+    setCreditCardId("");
   }
 
   useEffect(() => {
@@ -65,6 +73,9 @@ export function ExpenseFormDialog({
     router.refresh();
     router.replace("/gastos");
   }, [successId, router]);
+
+  const selectedCard = cards.find((card) => card.id === creditCardId);
+  const isCreditCard = paymentMethod === "credit_card";
 
   return (
     <>
@@ -87,87 +98,93 @@ export function ExpenseFormDialog({
           <DialogHeader>
             <DialogTitle>Novo gasto</DialogTitle>
             <DialogDescription>
-              Cadastre um gasto avulso. Parcelas, recorrentes e assinaturas
-              ficam nas telas próprias.
+              O lançamento entra como pendente. No crédito, a cobrança usa a
+              data de vencimento do cartão.
             </DialogDescription>
           </DialogHeader>
           <form action={action} className="flex min-h-0 flex-1 flex-col">
             <DialogBody className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <Field
-                    label="Descrição"
-                    name="description"
-                    placeholder="Ex.: Mercado, Farmácia"
-                    error={state.fieldErrors?.description?.[0]}
-                  />
-                </div>
-                <Field
-                  label="Valor"
-                  name="amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  error={state.fieldErrors?.amount?.[0]}
+              <Field
+                label="Descrição"
+                name="description"
+                placeholder="Ex.: Mercado, Farmácia"
+                error={state.fieldErrors?.description?.[0]}
+              />
+              <Field
+                label="Valor"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                error={state.fieldErrors?.amount?.[0]}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="expense-payment">Pagamento</Label>
+                <FormSelect
+                  id="expense-payment"
+                  name="paymentMethod"
+                  value={paymentMethod}
+                  onValueChange={(value) => {
+                    const next = value ?? "pix";
+                    setPaymentMethod(next);
+                    if (next !== "credit_card") setCreditCardId("");
+                  }}
+                  options={PAYMENT_METHODS}
                 />
-                <Field
-                  label="Data"
-                  name="transactionDate"
-                  type="date"
-                  defaultValue={todayISO()}
-                  error={state.fieldErrors?.transactionDate?.[0]}
-                />
+              </div>
+              {isCreditCard && (
                 <div className="space-y-2">
-                  <Label htmlFor="expense-status">Status</Label>
-                  <FormSelect
-                    id="expense-status"
-                    name="status"
-                    defaultValue="paid"
-                    options={[
-                      { value: "pending", label: "Pendente" },
-                      { value: "paid", label: "Pago" },
-                    ]}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expense-payment">Pagamento</Label>
-                  <FormSelect
-                    id="expense-payment"
-                    name="paymentMethod"
-                    defaultValue="pix"
-                    options={PAYMENT_METHODS}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expense-category">Categoria</Label>
-                  <FormSelect
-                    id="expense-category"
-                    name="categoryId"
-                    defaultValue=""
-                    options={[
-                      { value: "", label: "Sem categoria" },
-                      ...categories.map((category) => ({
-                        value: category.id,
-                        label: category.name,
-                      })),
-                    ]}
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="expense-card">Cartão (opcional)</Label>
+                  <Label htmlFor="expense-card">Cartão</Label>
                   <FormSelect
                     id="expense-card"
                     name="creditCardId"
-                    defaultValue=""
+                    value={creditCardId}
+                    onValueChange={(value) => setCreditCardId(value ?? "")}
                     options={[
-                      { value: "", label: "Nenhum" },
+                      { value: "", label: "Selecione o cartão" },
                       ...cards.map((card) => ({
                         value: card.id,
                         label: card.name,
                       })),
                     ]}
                   />
+                  {state.fieldErrors?.creditCardId?.[0] && (
+                    <p className="text-sm text-destructive">
+                      {state.fieldErrors.creditCardId[0]}
+                    </p>
+                  )}
+                  {selectedCard?.dueDate && (
+                    <p className="text-sm text-muted-foreground">
+                      A cobrança entra em {formatDueDate(selectedCard.dueDate)}.
+                    </p>
+                  )}
+                  {selectedCard && !selectedCard.dueDate && (
+                    <p className="text-sm text-destructive">
+                      Este cartão ainda não tem data de vencimento.
+                    </p>
+                  )}
+                  {cards.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Cadastre um cartão com data de vencimento para lançar no
+                      crédito.
+                    </p>
+                  )}
                 </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="expense-category">Categoria</Label>
+                <FormSelect
+                  id="expense-category"
+                  name="categoryId"
+                  defaultValue=""
+                  options={[
+                    { value: "", label: "Sem categoria" },
+                    ...categories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    })),
+                  ]}
+                />
               </div>
               {state.error && (
                 <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">

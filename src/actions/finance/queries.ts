@@ -350,6 +350,7 @@ export async function listExpenses(filters: LedgerFilters = {}) {
       categoryName: categories.name,
       creditCardId: expenses.creditCardId,
       creditCardName: creditCards.name,
+      purchasedAt: expenses.purchasedAt,
       notes: expenses.notes,
     })
     .from(expenses)

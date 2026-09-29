@@ -30,6 +30,7 @@ export async function upsertCreditCardAction(
     id: formData.get("id") || undefined,
     name: formData.get("name"),
     institution: formData.get("institution") || undefined,
+    dueDate: formData.get("dueDate"),
     status: formData.get("status") || "active",
   });
 
@@ -56,6 +57,7 @@ export async function upsertCreditCardAction(
       .set({
         name: data.name,
         institution: data.institution ?? null,
+        dueDate: data.dueDate,
         status: data.status,
         updatedAt: new Date(),
       })
@@ -71,6 +73,7 @@ export async function upsertCreditCardAction(
       walletId,
       name: data.name,
       institution: data.institution ?? null,
+      dueDate: data.dueDate,
       status: data.status,
     })
     .returning({ id: creditCards.id });

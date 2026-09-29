@@ -44,7 +44,11 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
   const cardOptions = cards.map((card) => ({ id: card.id, name: card.name }));
   const activeCards = cards
     .filter((card) => card.status === "active")
-    .map((card) => ({ id: card.id, name: card.name }));
+    .map((card) => ({
+      id: card.id,
+      name: card.name,
+      dueDate: card.dueDate,
+    }));
 
   return (
     <>
@@ -96,6 +100,7 @@ export default async function GastosPage({ searchParams }: GastosPageProps) {
               categoryName: row.categoryName,
               creditCardId: row.creditCardId,
               creditCardName: row.creditCardName,
+              purchasedAt: row.purchasedAt,
               notes: row.notes,
             }))}
           />

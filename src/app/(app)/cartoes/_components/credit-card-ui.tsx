@@ -26,8 +26,16 @@ type Card = {
   id: string;
   name: string;
   institution: string | null;
+  dueDate: string | null;
   status: "active" | "inactive" | "blocked";
 };
+
+function formatDueDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR").format(
+    new Date(year!, month! - 1, day!),
+  );
+}
 
 const initialState: FinanceActionState = {};
 
@@ -38,14 +46,16 @@ function CreditCardFormFields({
   card?: Card;
   state: FinanceActionState;
 }) {
+  const idPrefix = card ? "edit-" : "";
+
   return (
     <>
       {card && <input type="hidden" name="id" value={card.id} />}
 
       <div className="space-y-2">
-        <Label htmlFor="name">Nome</Label>
+        <Label htmlFor={`${idPrefix}name`}>Nome</Label>
         <Input
-          id="name"
+          id={`${idPrefix}name`}
           name="name"
           defaultValue={card?.name ?? ""}
           placeholder="Ex.: Nubank"
@@ -58,14 +68,32 @@ function CreditCardFormFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="institution">Instituição (opcional)</Label>
+        <Label htmlFor={`${idPrefix}institution`}>Instituição (opcional)</Label>
         <Input
-          id="institution"
+          id={`${idPrefix}institution`}
           name="institution"
           defaultValue={card?.institution ?? ""}
           placeholder="Ex.: Nu Pagamentos"
           className="h-11 rounded-xl text-base"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${idPrefix}dueDate`}>Data de vencimento</Label>
+        <Input
+          id={`${idPrefix}dueDate`}
+          name="dueDate"
+          type="date"
+          required
+          defaultValue={card?.dueDate ?? ""}
+          className="h-11 rounded-xl text-base"
+          aria-invalid={!!state.fieldErrors?.dueDate}
+        />
+        {state.fieldErrors?.dueDate?.[0] && (
+          <p className="text-sm text-destructive">
+            {state.fieldErrors.dueDate[0]}
+          </p>
+        )}
       </div>
 
       <input type="hidden" name="status" value={card?.status ?? "active"} />
@@ -110,7 +138,8 @@ export function NewCreditCardDialog() {
           <DialogHeader>
             <DialogTitle>Novo cartão</DialogTitle>
             <DialogDescription>
-              Cadastro simples para vincular gastos e parcelas.
+              Informe o vencimento da fatura em aberto. Gastos no crédito entram
+              nessa data.
             </DialogDescription>
           </DialogHeader>
 
@@ -190,6 +219,11 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
                   {card.institution}
                 </p>
               )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {card.dueDate
+                  ? `Vence em ${formatDueDate(card.dueDate)}`
+                  : "Sem data de vencimento"}
+              </p>
               <span
                 className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
                   card.status === "active"
@@ -235,7 +269,7 @@ export function CreditCardList({ cards }: { cards: Card[] }) {
           <DialogHeader>
             <DialogTitle>Editar cartão</DialogTitle>
             <DialogDescription>
-              Atualize o nome ou a instituição do cartão.
+              Atualize o nome, a instituição ou a data de vencimento.
             </DialogDescription>
           </DialogHeader>
 
