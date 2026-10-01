@@ -55,6 +55,7 @@ export function ExpenseFormDialog({
   const [open, setOpen] = useState(defaultOpen);
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [creditCardId, setCreditCardId] = useState("");
+  const [plannedDate, setPlannedDate] = useState("");
   const [state, action, pending] = useActionState(
     upsertExpenseAction,
     initialState,
@@ -66,6 +67,7 @@ export function ExpenseFormDialog({
     setOpen(false);
     setPaymentMethod("pix");
     setCreditCardId("");
+    setPlannedDate("");
   }
 
   useEffect(() => {
@@ -98,8 +100,9 @@ export function ExpenseFormDialog({
           <DialogHeader>
             <DialogTitle>Novo gasto</DialogTitle>
             <DialogDescription>
-              O lançamento entra como pendente. No crédito, a cobrança cai no
-              dia de vencimento do mês seguinte.
+              O lançamento entra como pendente. Informe a data prevista para
+              colocá-lo em outro dia; sem data, entra hoje ou no vencimento do
+              cartão.
             </DialogDescription>
           </DialogHeader>
           <form action={action} className="flex min-h-0 flex-1 flex-col">
@@ -153,24 +156,44 @@ export function ExpenseFormDialog({
                       {state.fieldErrors.creditCardId[0]}
                     </p>
                   )}
-                  {selectedCard?.dueDay && (
+                  {selectedCard?.dueDay && !plannedDate && (
                     <p className="text-sm text-muted-foreground">
-                      A cobrança entra em {formatNextDueDate(selectedCard.dueDay)}.
+                      Sem data prevista, a cobrança entra em{" "}
+                      {formatNextDueDate(selectedCard.dueDay)}.
                     </p>
                   )}
-                  {selectedCard && !selectedCard.dueDay && (
+                  {selectedCard && !selectedCard.dueDay && !plannedDate && (
                     <p className="text-sm text-destructive">
-                      Este cartão ainda não tem dia de vencimento.
+                      Este cartão ainda não tem dia de vencimento. Informe a
+                      data prevista para lançar mesmo assim.
                     </p>
                   )}
                   {cards.length === 0 && (
                     <p className="text-sm text-muted-foreground">
-                      Cadastre um cartão com dia de vencimento para lançar no
-                      crédito.
+                      Cadastre um cartão para lançar no crédito.
                     </p>
                   )}
                 </div>
               )}
+              <div className="space-y-2">
+                <Field
+                  label="Data prevista (opcional)"
+                  name="transactionDate"
+                  type="date"
+                  value={plannedDate}
+                  onChange={(event) => setPlannedDate(event.target.value)}
+                  error={state.fieldErrors?.transactionDate?.[0]}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {plannedDate
+                    ? "O gasto entra como pendente nesta data."
+                    : isCreditCard && selectedCard?.dueDay
+                      ? "Ou escolha outra data para substituir o vencimento do cartão."
+                      : isCreditCard
+                        ? "Sem data, a cobrança cai no vencimento do mês seguinte."
+                        : "Sem data, o gasto entra hoje."}
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="expense-category">Categoria</Label>
                 <FormSelect

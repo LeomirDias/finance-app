@@ -82,8 +82,8 @@ export async function upsertExpenseAction(
   }
 
   const purchasedAt = new Date();
-  let transactionDate = parseDateOnly(toDateOnlyString(purchasedAt));
   let creditCardId: string | null = null;
+  let cardDueDay: number | null = null;
 
   if (data.paymentMethod === "credit_card") {
     if (!data.creditCardId) {
@@ -100,15 +100,22 @@ export async function upsertExpenseAction(
     });
 
     if (!card) return { error: "Cartão não encontrado." };
-    if (!card.dueDay) {
+    if (!data.transactionDate && !card.dueDay) {
       return {
-        error: "Cadastre o dia de vencimento deste cartão antes de lançar o gasto.",
+        error:
+          "Cadastre o dia de vencimento deste cartão ou informe a data prevista.",
       };
     }
 
     creditCardId = card.id;
-    transactionDate = nextMonthDueDate(purchasedAt, card.dueDay);
+    cardDueDay = card.dueDay;
   }
+
+  const transactionDate = data.transactionDate
+    ? parseDateOnly(data.transactionDate)
+    : creditCardId && cardDueDay
+      ? nextMonthDueDate(purchasedAt, cardDueDay)
+      : parseDateOnly(toDateOnlyString(purchasedAt));
 
   const [created] = await db
     .insert(expenses)

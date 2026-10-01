@@ -46,7 +46,11 @@ export const ExpenseSchema = z.object({
   transactionDate: z
     .string()
     .optional()
-    .transform((value) => (value && value.length > 0 ? value : undefined)),
+    .transform((value) => (value && value.length > 0 ? value : undefined))
+    .refine(
+      (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
+      "Informe uma data válida.",
+    ),
   notes: z.string().optional(),
 });
 

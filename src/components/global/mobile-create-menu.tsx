@@ -17,7 +17,7 @@ const options = [
   {
     href: "/gastos?novo=1",
     label: "Gasto",
-    description: "Lançamento avulso",
+    description: "Avulso ou com data prevista",
     icon: ArrowDownCircle,
   },
   {
